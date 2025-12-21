@@ -19,4 +19,6 @@ fn main() {
             dbg!(args);
             dbg!(options);
         });
+
+    cli_program.parse();
 }

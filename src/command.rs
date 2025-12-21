@@ -1,20 +1,17 @@
-use crate::{argument::CliArgument, option::CliOption};
-use std::{borrow::Cow, collections::HashMap};
-
-// Both single and multiple values are represented as a list of strings
-// List of parsed arguments in the order they were initialized with the command
-type ParsedArgs = Vec<Vec<String>>;
-// Key: long_flag (fallback: short_flag), Value: list of values
-type ParsedOptions = HashMap<String, Vec<String>>;
+use crate::{
+    argument::{CliArgument, ParsedArgs, ParsedOptions},
+    option::CliOption,
+};
+use std::borrow::Cow;
 
 pub struct CliCommand<'a> {
     // Command Details
-    name: Cow<'a, str>,
-    description: Option<Cow<'a, str>>,
+    pub name: Cow<'a, str>,
+    pub description: Option<Cow<'a, str>>,
     // Logic
-    arguments: Vec<CliArgument<'a>>,
-    options: Vec<CliOption<'a>>,
-    action: Option<Box<dyn Fn(ParsedArgs, ParsedOptions) + 'a>>,
+    pub arguments: Vec<CliArgument<'a>>,
+    pub options: Vec<CliOption<'a>>,
+    pub action: Option<Box<dyn Fn(ParsedArgs, ParsedOptions) + 'a>>,
 }
 
 impl<'a> CliCommand<'a> {

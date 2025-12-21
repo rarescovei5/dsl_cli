@@ -1,11 +1,24 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum ParsedArg {
+    Single(Option<String>),
+    Multiple(Option<Vec<String>>),
+}
+pub type ParsedArgs = HashMap<String, ParsedArg>;
+
+#[derive(Debug, Clone)]
+pub enum ParsedOption {
+    Boolean(bool),
+    Args(ParsedArgs),
+}
+pub type ParsedOptions = HashMap<String, ParsedOption>;
+
 pub struct CliArgument<'a> {
-    name: Cow<'a, str>,
-    description: Option<Cow<'a, str>>,
-    multiple: bool,
-    required: bool,
+    pub name: Cow<'a, str>,
+    pub description: Option<Cow<'a, str>>,
+    pub multiple: bool,
+    pub required: bool,
 }
 
 impl<'a> CliArgument<'a> {

@@ -1,18 +1,17 @@
 use std::borrow::Cow;
 
-use crate::argument::{is_argument, parse_argument};
+use crate::argument::{CliArgument, is_argument};
 
 pub struct CliOption<'a> {
     // Details
-    description: Option<Cow<'a, str>>,
+    pub name: Cow<'a, str>,
+    pub description: Option<Cow<'a, str>>,
     // Flag related
-    short_flag: Option<Cow<'a, str>>,
-    long_flag: Option<Cow<'a, str>>,
-    required: bool,
+    pub short_flag: Option<Cow<'a, str>>,
+    pub long_flag: Option<Cow<'a, str>>,
+    pub required: bool,
     // Arg related
-    arg_name: Option<Cow<'a, str>>,
-    required_arg: bool,
-    multiple: bool,
+    pub arguments: Vec<CliArgument<'a>>,
 }
 
 impl<'a> CliOption<'a> {
@@ -25,33 +24,34 @@ impl<'a> CliOption<'a> {
 
         let (short_flag, long_flag) = parse_option_flags(&flags_and_value);
 
-        let (arg_name, multiple, required_arg) = {
-            let last_segment = flags_and_value
-                .split_ascii_whitespace()
-                .last()
-                .expect("There will always be a last element since we split by whitespace.");
-            let is_arg = is_argument(&last_segment.into());
-
-            if is_arg {
-                let arg = Cow::Owned(last_segment.to_string());
-                let (arg_name, multiple, required) = parse_argument(&arg);
-                (Some(arg_name), multiple, required)
-            } else {
-                (None, false, required)
+        let arguments = {
+            let mut arguments = Vec::new();
+            let mut segments = flags_and_value.split_ascii_whitespace();
+            while let Some(segment) = segments.next() {
+                let is_arg = is_argument(&segment.into());
+                if is_arg {
+                    let arg = Cow::Owned(segment.to_string());
+                    arguments.push(CliArgument::new(arg, None));
+                }
             }
+            arguments
         };
+
+        let name = long_flag
+            .as_ref()
+            .unwrap_or(short_flag.as_ref().unwrap())
+            .clone();
 
         Self {
             // Details
+            name,
             description: description.map(|d| d.into()),
             // Flag related
             short_flag,
             long_flag,
             required,
             // Argument related
-            arg_name,
-            multiple,
-            required_arg,
+            arguments,
         }
     }
 }

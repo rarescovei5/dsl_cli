@@ -1,5 +1,6 @@
 use crate::{
     argument::{CliArgument, ParsedArgs, ParsedOptions},
+    help,
     option::CliOption,
 };
 use std::borrow::Cow;
@@ -108,5 +109,29 @@ impl<'a> CliCommand<'a> {
     {
         self.action = Some(Box::new(action));
         self
+    }
+
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    // User logic
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    fn help(&self) {
+        let executable_name = std::env::args().next().unwrap_or_else(|| "cli".to_string());
+        println!(
+            "Usage: {}\n",
+            help::usage_string(
+                &executable_name,
+                &self.arguments,
+                &self.options,
+                Some(&self.name)
+            )
+        );
+
+        if !self.arguments.is_empty() {
+            println!("Arguments: \n{}\n", help::arguments_list(&self.arguments));
+        }
+        if !self.options.is_empty() {
+            println!("Options: \n{}\n", help::options_list(&self.options));
+        }
+        std::process::exit(0);
     }
 }

@@ -1,7 +1,10 @@
 use crate::{
     argument::{CliArgument, ParsedArg, ParsedArgs, ParsedOption, ParsedOptions},
     command::CliCommand,
+    error::{CliError, UserError},
+    help,
     option::CliOption,
+    validate::validate_arguments_definition,
 };
 use std::{borrow::Cow, collections::HashMap};
 
@@ -152,23 +155,45 @@ impl<'a> Cli<'a> {
     /// Parse the command line arguments
     pub fn parse(&mut self) {
         let args = std::env::args().skip(1).collect::<Vec<String>>();
-        self.parse_args(args);
+
+        self.parse_args(args)
     }
     /// Parse the given environment arguments
-    fn parse_args(&mut self, env_args: Vec<String>) {
-        let first_segment = env_args.first();
+    pub fn parse_args(&mut self, env_args: Vec<String>) {
+        match self.try_parse(env_args) {
+            Ok(()) => (),
+            Err(error) => {
+                println!("{}", error);
+                std::process::exit(1);
+            }
+        }
+    }
 
-        let command = if let Some(segment) = first_segment {
+    // Parse Implementation
+    pub fn try_parse(&mut self, env_args: Vec<String>) -> Result<(), CliError> {
+        // ------- Check if the defined arguments are valid ---------
+        {
+            validate_arguments_definition(&self.arguments)?;
+            for option in &self.options {
+                validate_arguments_definition(&option.arguments)?;
+            }
+            for command in &self.commands {
+                validate_arguments_definition(&command.arguments)?;
+                for option in &command.options {
+                    validate_arguments_definition(&option.arguments)?;
+                }
+            }
+        }
+
+        // ------- Retrieve the arguments and options to match against ----------
+        let command = if let Some(segment) = env_args.first() {
             self.commands
                 .iter()
                 .find(|command| command.name == Cow::Borrowed(segment))
         } else {
             None
         };
-
         let mut env_args = env_args.into_iter();
-
-        // Retrieve the template arguments and options
         let (args, options) = match command {
             Some(command) => {
                 // Skip the command name
@@ -185,29 +210,34 @@ impl<'a> Cli<'a> {
                 (&self.arguments, &self.options)
             }
         };
-
         let env_args = env_args.collect::<Vec<String>>();
 
-        // Check if all required options are provided
-        for required_option in options.iter().filter(|option| option.required) {
-            let long_flag = &required_option.long_flag;
-            let short_flag = &required_option.short_flag;
+        // ------- Check if all required options are provided by the user ---------
+        let missing_options = options
+            .iter()
+            .filter(|option| option.required)
+            .filter(|required_option| {
+                let long_flag = &required_option.long_flag;
+                let short_flag = &required_option.short_flag;
 
-            if let Some(long_flag) = long_flag {
-                if env_args.contains(&long_flag.to_string()) {
-                    continue;
+                if let Some(long_flag) = long_flag {
+                    if env_args.contains(&long_flag.to_string()) {
+                        return false;
+                    }
                 }
-            }
-            if let Some(short_flag) = short_flag {
-                if env_args.contains(&short_flag.to_string()) {
-                    continue;
+                if let Some(short_flag) = short_flag {
+                    if env_args.contains(&short_flag.to_string()) {
+                        return false;
+                    }
                 }
-            }
-
-            self.error(&format!(
-                "Required option {} not provided",
-                long_flag.as_ref().unwrap_or(short_flag.as_ref().unwrap())
-            ));
+                true
+            })
+            .map(|option| option.name.to_string())
+            .collect::<Vec<_>>();
+        if !missing_options.is_empty() {
+            return Err(CliError::UserError(UserError::MissingRequiredOptions(
+                missing_options,
+            )));
         }
 
         // --------------------------- Parsing ---------------------------
@@ -265,17 +295,34 @@ impl<'a> Cli<'a> {
                 }
             }
         }
+
+        Ok(())
     }
 
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     // User logic
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    fn error(&self, message: &str) {
-        println!("Error: {}", message);
-        std::process::exit(1);
-    }
-    fn help(&self) {
-        println!("Help");
+    pub fn help(&self) {
+        let executable_name = std::env::args().next().unwrap_or_else(|| "cli".to_string());
+
+        println!(
+            "Usage: {}\n",
+            help::usage_string(&executable_name, &self.arguments, &self.options, None)
+        );
+
+        if !self.arguments.is_empty() {
+            println!("Arguments: \n{}\n", help::arguments_list(&self.arguments));
+        }
+        if !self.options.is_empty() {
+            println!("Options: \n{}\n", help::options_list(&self.options));
+        }
+        if !self.commands.is_empty() {
+            println!("Commands: \n{}\n", help::commands_list(&self.commands));
+            println!(
+                "For info on a specific command, use: {} help [command]\n",
+                executable_name
+            );
+        }
         std::process::exit(0);
     }
 }

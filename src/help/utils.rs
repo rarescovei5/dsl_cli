@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{argument::CliArgument, command::CliCommand, option::CliOption};
+use crate::types::{CliArgument, CliCommand, CliOption};
 
 const PADDING: usize = 4;
 

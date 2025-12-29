@@ -8,15 +8,16 @@ pub struct CliArgument<'a> {
     pub(crate) required: bool,
 }
 
+// Instance initialiaztion
 impl<'a> CliArgument<'a> {
     /// Create a new CliArgument
-    pub fn new<T>(name: T, description: Option<T>) -> Self
+    pub fn new<T>(argument: T, description: Option<T>) -> Self
     where
         T: Into<Cow<'a, str>>,
     {
-        let name = name.into();
+        let argument = argument.into();
 
-        let (name, variadic, required) = parse_argument(&name);
+        let (name, variadic, required) = parse_argument(&argument);
 
         Self {
             name,
@@ -27,7 +28,7 @@ impl<'a> CliArgument<'a> {
     }
 }
 
-pub fn parse_argument<'a>(argument: &Cow<'a, str>) -> (Cow<'a, str>, bool, bool) {
+fn parse_argument<'a>(argument: &Cow<'a, str>) -> (Cow<'a, str>, bool, bool) {
     if !is_argument(argument) {
         panic!("Argument name must be wrapped in:\n  -<name> for required\n  -[name] for optional");
     }

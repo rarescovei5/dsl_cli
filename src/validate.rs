@@ -1,6 +1,6 @@
 use crate::{
-    argument::CliArgument,
     error::{CliError, DefinitionError},
+    types::CliArgument,
 };
 
 pub fn validate_arguments_definition(arguments: &[CliArgument<'_>]) -> Result<(), CliError> {

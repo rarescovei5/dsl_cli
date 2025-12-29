@@ -3,13 +3,12 @@
 use std::{iter::Peekable, vec::IntoIter};
 
 use crate::{
-    argument::CliArgument,
     error::{CliError, UserError},
-    option::CliOption,
     parse::{
         cli::init_parsed_args,
         types::{ParsedArg, ParsedArgs, ParsedOption, ParsedOptions},
     },
+    types::{CliArgument, CliOption},
 };
 
 // =============================================================================

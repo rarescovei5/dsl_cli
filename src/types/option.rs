@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::argument::{CliArgument, is_argument};
+use crate::types::{CliArgument, argument::is_argument};
 
 pub struct CliOption<'a> {
     // Details

@@ -1,6 +1,6 @@
 use crate::{
-    command::CliCommand,
     help::utils::{arguments_list, arguments_width, options_list, options_width, usage_string},
+    types::CliCommand,
 };
 
 impl<'a> CliCommand<'a> {

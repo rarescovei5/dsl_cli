@@ -1,7 +1,6 @@
 use crate::{
-    argument::CliArgument,
-    option::CliOption,
     parse::types::{ParsedArgs, ParsedOptions},
+    types::{CliArgument, CliOption},
 };
 use std::borrow::Cow;
 

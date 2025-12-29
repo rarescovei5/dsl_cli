@@ -1,10 +1,7 @@
 use std::borrow::Cow;
 
 use crate::{
-    Cli,
-    argument::CliArgument,
     error::{CliError, UserError},
-    option::CliOption,
     parse::{
         types::{ParsedArg, ParsedArgs, ParsedOption, ParsedOptions},
         utils::{
@@ -12,6 +9,7 @@ use crate::{
             validate_required_options,
         },
     },
+    types::{Cli, CliArgument, CliOption},
     utils::reconstruct_arg_string,
     validate::validate_arguments_definition,
 };

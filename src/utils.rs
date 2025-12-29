@@ -1,4 +1,4 @@
-use crate::argument::CliArgument;
+use crate::types::CliArgument;
 
 pub fn reconstruct_arg_string(arg: &CliArgument<'_>) -> String {
     let mut name = arg.name.to_string();

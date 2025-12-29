@@ -39,7 +39,12 @@ impl<'a> CliOption<'a> {
 
         let name = long_flag
             .as_ref()
-            .unwrap_or(short_flag.as_ref().unwrap())
+            .or(short_flag.as_ref())
+            .unwrap_or_else(|| {
+                panic!(
+                    "Option must start with a short (-x) or long (--name) flag. Found: {flags_and_value}"
+                )
+            })
             .clone();
 
         Self {

@@ -1,5 +1,4 @@
 use commander::Cli;
-
 fn main() {
     let mut cli_program = Cli::new();
 
@@ -13,8 +12,8 @@ fn main() {
     cli_program
         .command("split")
         .description("Split a string into substrings and display as an array")
-        .argument_with_description("<string>", "The String to split")
-        .option_with_description("-s, --separator <char>", "The Delimiter to Use")
+        .argument("<string>", Some("The String to split"))
+        .option("-s, --separator <char>", Some("The Delimiter to Use"))
         .action(|args, options| {
             let string_to_split = args.get("string").unwrap();
             let separator = options.get("--separator").get("char").unwrap();

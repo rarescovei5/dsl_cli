@@ -1,3 +1,3 @@
 mod cli;
-mod command;
+pub(crate) mod types;
 pub(crate) mod utils;

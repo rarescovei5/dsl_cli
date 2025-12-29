@@ -1,7 +1,7 @@
 use crate::{
     argument::CliArgument,
     option::CliOption,
-    parse::{ParsedArgs, ParsedOptions},
+    parse::types::{ParsedArgs, ParsedOptions},
 };
 use std::borrow::Cow;
 
@@ -15,6 +15,7 @@ pub struct CliCommand<'a> {
     pub(crate) action: Option<Box<dyn Fn(ParsedArgs, ParsedOptions) + 'a>>,
 }
 
+// Instance initialiaztion
 impl<'a> CliCommand<'a> {
     /// Create a new CliCommand
     pub fn new<T>(name: T) -> Self
@@ -29,10 +30,10 @@ impl<'a> CliCommand<'a> {
             action: None,
         }
     }
+}
 
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    // Command Initialization
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Metadata methods
+impl<'a> CliCommand<'a> {
     /// Set the description of the CliCommand
     pub fn description<T>(&mut self, description: T) -> &mut Self
     where
@@ -41,68 +42,39 @@ impl<'a> CliCommand<'a> {
         self.description = Some(description.into());
         self
     }
+}
 
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    // Arguments Logic
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    /// Add a new argument (without a description) to the CliCommand
-    pub fn argument<T>(&mut self, name: T) -> &mut Self
+// builder methods
+impl<'a> CliCommand<'a> {
+    /// Add a new argument to the CliCommand
+    pub fn argument<T>(&mut self, name: T, description: Option<T>) -> &mut Self
     where
         T: Into<Cow<'a, str>>,
     {
-        self.arguments.push(CliArgument::new(name, None));
+        self.arguments.push(CliArgument::new(name, description));
         self
     }
-    /// Add a new argument (with a description) to the CliCommand
-    pub fn argument_with_description<T>(&mut self, name: T, description: T) -> &mut Self
+    /// Add a new option to the CliCommand
+    pub fn option<T>(&mut self, name: T, description: Option<T>) -> &mut Self
     where
         T: Into<Cow<'a, str>>,
     {
-        self.arguments
-            .push(CliArgument::new(name, Some(description)));
+        self.options.push(CliOption::new(name, description, false));
         self
     }
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    // Options Logic
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    /// Add a new option (without a description) to the CliCommand
-    pub fn option<T>(&mut self, name: T) -> &mut Self
+    /// Add a new required option to the CliCommand
+    pub fn required_option<T>(&mut self, name: T, description: Option<T>) -> &mut Self
     where
         T: Into<Cow<'a, str>>,
     {
-        self.options.push(CliOption::new(name, None, false));
+        self.options.push(CliOption::new(name, description, true));
         self
     }
-    /// Add a new option (with a description) to the CliCommand
-    pub fn option_with_description<T>(&mut self, name: T, description: T) -> &mut Self
-    where
-        T: Into<Cow<'a, str>>,
-    {
-        self.options
-            .push(CliOption::new(name, Some(description), false));
-        self
-    }
-    /// Add a new required option (without a description) to the CliCommand
-    pub fn required_option<T>(&mut self, name: T) -> &mut Self
-    where
-        T: Into<Cow<'a, str>>,
-    {
-        self.options.push(CliOption::new(name, None, true));
-        self
-    }
-    /// Add a new required option (with a description) to the CliCommand
-    pub fn required_option_with_description<T>(&mut self, name: T, description: T) -> &mut Self
-    where
-        T: Into<Cow<'a, str>>,
-    {
-        self.options
-            .push(CliOption::new(name, Some(description), true));
-        self
-    }
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    // Action Logic
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    /// Add an action to be called with the parsed arguments and options
+}
+
+// Operations
+impl<'a> CliCommand<'a> {
+    /// Set the action to be called after parsing with the parsed arguments and options
     pub fn action<F>(&mut self, action: F) -> &mut Self
     where
         F: Fn(ParsedArgs, ParsedOptions) + 'a,

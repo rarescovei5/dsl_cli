@@ -4,7 +4,43 @@ use crate::{argument::CliArgument, command::CliCommand, option::CliOption};
 
 const PADDING: usize = 4;
 
-pub fn options_list(options: &Vec<CliOption<'_>>) -> String {
+/// Calculate the width of option left cells (flags + arguments)
+pub fn options_width(options: &[CliOption<'_>]) -> usize {
+    options
+        .iter()
+        .map(|opt| {
+            let flags = [opt.short_flag.as_ref(), opt.long_flag.as_ref()]
+                .iter()
+                .filter_map(|flag| flag.as_ref().map(|f| f.to_string()))
+                .collect::<Vec<String>>()
+                .join(", ");
+
+            let args = opt
+                .arguments
+                .iter()
+                .map(|a| reconstruct_arg_string(a))
+                .collect::<Vec<String>>();
+
+            if args.is_empty() {
+                flags.len()
+            } else {
+                flags.len() + 1 + args.join(" ").len()
+            }
+        })
+        .max()
+        .unwrap_or(0)
+}
+
+/// Calculate the width of argument left cells
+pub fn arguments_width(arguments: &[CliArgument<'_>]) -> usize {
+    arguments
+        .iter()
+        .map(|arg| reconstruct_arg_string(arg).len())
+        .max()
+        .unwrap_or(0)
+}
+
+pub fn options_list(options: &Vec<CliOption<'_>>, min_width: usize) -> String {
     if options.is_empty() {
         return String::new();
     }
@@ -32,7 +68,12 @@ pub fn options_list(options: &Vec<CliOption<'_>>) -> String {
         })
         .collect();
 
-    let left_width = left_cells.iter().map(|s| s.len()).max().unwrap_or(0);
+    let left_width = left_cells
+        .iter()
+        .map(|s| s.len())
+        .max()
+        .unwrap_or(0)
+        .max(min_width);
 
     left_cells
         .into_iter()
@@ -46,7 +87,7 @@ pub fn options_list(options: &Vec<CliOption<'_>>) -> String {
         .join("\n")
 }
 
-pub fn arguments_list(arguments: &Vec<CliArgument<'_>>) -> String {
+pub fn arguments_list(arguments: &Vec<CliArgument<'_>>, min_width: usize) -> String {
     if arguments.is_empty() {
         return String::new();
     }
@@ -56,7 +97,12 @@ pub fn arguments_list(arguments: &Vec<CliArgument<'_>>) -> String {
         .map(|arg| reconstruct_arg_string(arg))
         .collect();
 
-    let left_width = left_cells.iter().map(|s| s.len()).max().unwrap_or(0);
+    let left_width = left_cells
+        .iter()
+        .map(|s| s.len())
+        .max()
+        .unwrap_or(0)
+        .max(min_width);
 
     left_cells
         .into_iter()
@@ -92,14 +138,12 @@ pub fn commands_list(commands: &Vec<CliCommand<'_>>) -> String {
 }
 
 pub fn usage_string(
-    executable_name: &str,
     arguments: &Vec<CliArgument<'_>>,
     options: &Vec<CliOption<'_>>,
     command_name: Option<&Cow<'_, str>>,
 ) -> String {
     // Build usage string
     let mut usage_parts = Vec::new();
-    usage_parts.push(executable_name.to_string());
     // Add command name if it exists
     if let Some(command_name) = command_name {
         usage_parts.push(command_name.to_string());

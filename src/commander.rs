@@ -1,12 +1,17 @@
 use crate::{
-    argument::{CliArgument, ParsedArg, ParsedArgs, ParsedOption, ParsedOptions},
+    argument::CliArgument,
     command::CliCommand,
     error::{CliError, UserError},
-    help,
+    help::{self, reconstruct_arg_string},
     option::CliOption,
+    parse::{
+        ParsedArg, ParsedArgs, ParsedOptions, TokenStream, find_option, init_parsed_args,
+        init_parsed_options, parse_option_args, validate_no_unknown_options,
+        validate_required_options,
+    },
     validate::validate_arguments_definition,
 };
-use std::{borrow::Cow, collections::HashMap};
+use std::borrow::Cow;
 
 pub struct Cli<'a> {
     // Instance
@@ -34,8 +39,8 @@ impl<'a> Cli<'a> {
             options: Vec::new(),
             arguments: Vec::new(),
             action: None,
-            parsed_args: HashMap::new(),
-            parsed_options: HashMap::new(),
+            parsed_args: ParsedArgs::new(),
+            parsed_options: ParsedOptions::new(),
         }
     }
 
@@ -171,158 +176,212 @@ impl<'a> Cli<'a> {
 
     // Parse Implementation
     pub fn try_parse(&mut self, env_args: Vec<String>) -> Result<(), CliError> {
-        // ------- Check if the defined arguments are valid ---------
-        {
-            validate_arguments_definition(&self.arguments)?;
-            for option in &self.options {
-                validate_arguments_definition(&option.arguments)?;
-            }
-            for command in &self.commands {
-                validate_arguments_definition(&command.arguments)?;
-                for option in &command.options {
-                    validate_arguments_definition(&option.arguments)?;
-                }
-            }
-        }
+        // Validate CLI definition (developer errors)
+        self.validate_definition()?;
 
-        // ------- Retrieve the arguments and options to match against ----------
-        let command = if let Some(segment) = env_args.first() {
-            self.commands
-                .iter()
-                .find(|command| command.name == Cow::Borrowed(segment))
-        } else {
-            None
-        };
-        let mut env_args = env_args.into_iter();
-        let (args, options) = match command {
-            Some(command) => {
-                // Skip the command name
-                env_args.next();
-                (&command.arguments, &command.options)
-            }
-            None => {
-                // If top level cli isn t configured, user needs help
-                if self.arguments.is_empty() && self.options.is_empty() {
-                    self.help();
-                }
+        //  Resolve command context (which args/options to match against)
+        let (command_idx, tokens) = self.resolve_command_context(env_args);
 
-                // Use the top level arguments and options
-                (&self.arguments, &self.options)
-            }
-        };
-        let env_args = env_args.collect::<Vec<String>>();
-
-        // ------- Check if all required options are provided by the user ---------
-        let missing_options = options
-            .iter()
-            .filter(|option| option.required)
-            .filter(|required_option| {
-                let long_flag = &required_option.long_flag;
-                let short_flag = &required_option.short_flag;
-
-                if let Some(long_flag) = long_flag {
-                    if env_args.contains(&long_flag.to_string()) {
-                        return false;
-                    }
-                }
-                if let Some(short_flag) = short_flag {
-                    if env_args.contains(&short_flag.to_string()) {
-                        return false;
-                    }
-                }
-                true
-            })
-            .map(|option| option.name.to_string())
-            .collect::<Vec<_>>();
-        if !missing_options.is_empty() {
-            return Err(CliError::UserError(UserError::MissingRequiredOptions(
-                missing_options,
-            )));
-        }
-
-        // --------------------------- Parsing ---------------------------
-        // Initialize parsed arguments
-        let mut parsed_args = HashMap::with_capacity(args.len());
-        for argument in args {
-            let multiple = if argument.multiple {
-                ParsedArg::Multiple(None)
-            } else {
-                ParsedArg::Single(None)
+        // Validate user input and parse tokens
+        let (parsed_args, parsed_options) = {
+            let (args, options) = match command_idx {
+                Some(idx) => (&self.commands[idx].arguments, &self.commands[idx].options),
+                None => (&self.arguments, &self.options),
             };
-            parsed_args.insert(argument.name.to_string(), multiple);
-        }
 
-        // Initialize parsed options
-        let mut parsed_options = HashMap::with_capacity(options.len());
-        for option in options {
-            let parsed_option = if option.arguments.is_empty() {
-                ParsedOption::Boolean(false)
-            } else {
-                let mut args = HashMap::with_capacity(option.arguments.len());
-                for argument in &option.arguments {
-                    let multiple = if argument.multiple {
-                        ParsedArg::Multiple(None)
-                    } else {
-                        ParsedArg::Single(None)
-                    };
-                    args.insert(argument.name.to_string(), multiple);
-                }
-                ParsedOption::Args(args)
-            };
-            parsed_options.insert(option.name.to_string(), parsed_option);
-        }
+            // Validate user input (user errors)
+            validate_required_options(options, &tokens)?;
+            validate_no_unknown_options(options, &tokens)?;
 
-        // Parse
-        for segment in env_args {
-            todo!();
-        }
+            // Parse tokens into structured data
+            Self::parse_tokens(tokens, args, options)?
+        };
 
-        // --------------------------- Finalize ---------------------------
-        // Set the parsed data
+        // Finalize (store results and run action)
         self.parsed_args = parsed_args.clone();
         self.parsed_options = parsed_options.clone();
 
-        // Run actions
-        match command {
-            Some(command) => {
-                if let Some(action) = &command.action {
-                    action(parsed_args, parsed_options);
-                }
+        // Run action
+        let action = match command_idx {
+            Some(idx) => &self.commands[idx].action,
+            None => &self.action,
+        };
+        if let Some(action) = action {
+            action(parsed_args, parsed_options);
+        }
+
+        Ok(())
+    }
+
+    /// Validate that the CLI definition is correct (no invalid argument orderings, etc.)
+    fn validate_definition(&self) -> Result<(), CliError> {
+        validate_arguments_definition(&self.arguments)?;
+        for option in &self.options {
+            validate_arguments_definition(&option.arguments)?;
+        }
+        for command in &self.commands {
+            validate_arguments_definition(&command.arguments)?;
+            for option in &command.options {
+                validate_arguments_definition(&option.arguments)?;
             }
-            None => {
-                if let Some(action) = &self.action {
-                    action(parsed_args, parsed_options);
+        }
+        Ok(())
+    }
+
+    /// Determine which command (if any) is being invoked, and return its index + remaining tokens.
+    fn resolve_command_context(&self, env_args: Vec<String>) -> (Option<usize>, Vec<String>) {
+        let first_arg = env_args.first();
+
+        if first_arg.is_some() && first_arg.unwrap() == "help" {
+            let second_arg = env_args.get(1);
+
+            if second_arg.is_some() {
+                let second_arg = second_arg.unwrap();
+                let command_idx = self
+                    .commands
+                    .iter()
+                    .position(|cmd| cmd.name == Cow::Borrowed(second_arg.as_str()));
+
+                if command_idx.is_some() {
+                    self.commands[command_idx.unwrap()].help();
+                } else {
+                    self.help();
+                }
+            } else {
+                self.help();
+            }
+        }
+
+        let command_idx = first_arg.and_then(|first| {
+            self.commands
+                .iter()
+                .position(|cmd| cmd.name == Cow::Borrowed(first.as_str()))
+        });
+
+        let tokens = if command_idx.is_some() {
+            env_args.into_iter().skip(1).collect()
+        } else {
+            // Show help if top-level CLI has no args/options configured
+            if self.arguments.is_empty() && self.options.is_empty() {
+                self.help();
+            }
+            env_args
+        };
+
+        (command_idx, tokens)
+    }
+
+    /// Parse the token stream into ParsedArgs and ParsedOptions.
+    fn parse_tokens(
+        tokens: Vec<String>,
+        args: &[CliArgument<'_>],
+        options: &[CliOption<'_>],
+    ) -> Result<(ParsedArgs, ParsedOptions), CliError> {
+        let mut parsed_args = init_parsed_args(args);
+        let mut parsed_options = init_parsed_options(options);
+        let mut stream = TokenStream::new(tokens);
+        let mut positional_idx = 0;
+
+        while let Some(token) = stream.next() {
+            if let Some(option) = find_option(&token, options) {
+                // Parse option and its arguments
+                parse_option_args(&mut stream, option, &mut parsed_options)?;
+            } else {
+                // It's a positional argument
+                if positional_idx < args.len() {
+                    let arg_def = &args[positional_idx];
+                    if arg_def.multiple {
+                        // Variadic: this token + all remaining non-option tokens
+                        let mut values = vec![token];
+                        while !stream.peek_is_option() && stream.peek().is_some() {
+                            values.push(stream.next().unwrap());
+                        }
+                        parsed_args
+                            .insert(arg_def.name.to_string(), ParsedArg::Multiple(Some(values)));
+                        positional_idx += 1;
+                    } else {
+                        parsed_args
+                            .insert(arg_def.name.to_string(), ParsedArg::Single(Some(token)));
+                        positional_idx += 1;
+                    }
+                } else {
+                    let remaining_args = stream.remaining_args();
+
+                    return Err(CliError::UserError(UserError::TooManyArguments(
+                        remaining_args,
+                    )));
                 }
             }
         }
 
-        Ok(())
+        // Final check: user must supply all required arguments
+        let required_args_count = args.iter().filter(|arg| arg.required).count();
+        if positional_idx < required_args_count {
+            let missing_args = args[positional_idx..required_args_count]
+                .iter()
+                .map(|arg| reconstruct_arg_string(arg))
+                .collect::<Vec<String>>();
+            return Err(CliError::UserError(UserError::MissingRequiredArguments(
+                missing_args,
+            )));
+        }
+
+        Ok((parsed_args, parsed_options))
     }
 
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     // User logic
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     pub fn help(&self) {
-        let executable_name = std::env::args().next().unwrap_or_else(|| "cli".to_string());
+        if let Some(name) = &self.name {
+            let version = "v".to_string() + self.version.as_ref().unwrap_or(&Cow::Borrowed(""));
+            println!("\n{} {}", name, version);
+        }
 
-        println!(
-            "Usage: {}\n",
-            help::usage_string(&executable_name, &self.arguments, &self.options, None)
-        );
+        // Print description
+        if let Some(description) = &self.description {
+            println!("\n{}", description);
+        }
+
+        let executable_name = std::env::args()
+            .next()
+            .and_then(|path| {
+                std::path::Path::new(&path)
+                    .file_name()
+                    .map(|s| s.to_string_lossy().into_owned())
+            })
+            .unwrap_or_else(|| "cli".to_string());
+
+        let usage_string = help::usage_string(&self.arguments, &self.options, None);
+        if !usage_string.is_empty() {
+            println!("\nUsage: {} {}", executable_name, usage_string);
+        }
+
+        let column_width =
+            help::arguments_width(&self.arguments).max(help::options_width(&self.options));
 
         if !self.arguments.is_empty() {
-            println!("Arguments: \n{}\n", help::arguments_list(&self.arguments));
+            println!(
+                "\nArguments: \n{}",
+                help::arguments_list(&self.arguments, column_width)
+            );
         }
         if !self.options.is_empty() {
-            println!("Options: \n{}\n", help::options_list(&self.options));
+            println!(
+                "\nOptions: \n{}",
+                help::options_list(&self.options, column_width)
+            );
         }
         if !self.commands.is_empty() {
-            println!("Commands: \n{}\n", help::commands_list(&self.commands));
+            println!("\nCommands: \n{}", help::commands_list(&self.commands));
             println!(
-                "For info on a specific command, use: {} help [command]\n",
+                "\nFor info on a specific command, use: {} help [command]",
                 executable_name
             );
         }
+
+        println!();
+
         std::process::exit(0);
     }
 }

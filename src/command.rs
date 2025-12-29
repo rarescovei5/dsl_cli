@@ -1,7 +1,8 @@
 use crate::{
-    argument::{CliArgument, ParsedArgs, ParsedOptions},
+    argument::CliArgument,
     help,
     option::CliOption,
+    parse::{ParsedArgs, ParsedOptions},
 };
 use std::borrow::Cow;
 
@@ -114,24 +115,45 @@ impl<'a> CliCommand<'a> {
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     // User logic
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    fn help(&self) {
-        let executable_name = std::env::args().next().unwrap_or_else(|| "cli".to_string());
-        println!(
-            "Usage: {}\n",
-            help::usage_string(
-                &executable_name,
-                &self.arguments,
-                &self.options,
-                Some(&self.name)
-            )
-        );
+    pub fn help(&self) {
+        println!("\nCommand: {}", self.name);
+
+        if let Some(description) = &self.description {
+            println!("\n{}", description);
+        }
+
+        let executable_name = std::env::args()
+            .next()
+            .and_then(|path| {
+                std::path::Path::new(&path)
+                    .file_name()
+                    .map(|s| s.to_string_lossy().into_owned())
+            })
+            .unwrap_or_else(|| "cli".to_string());
+
+        let usage_string = help::usage_string(&self.arguments, &self.options, Some(&self.name));
+        if !usage_string.is_empty() {
+            println!("\nUsage: {} {}", executable_name, usage_string);
+        }
+
+        let column_width =
+            help::arguments_width(&self.arguments).max(help::options_width(&self.options));
 
         if !self.arguments.is_empty() {
-            println!("Arguments: \n{}\n", help::arguments_list(&self.arguments));
+            println!(
+                "\nArguments: \n{}",
+                help::arguments_list(&self.arguments, column_width)
+            );
         }
         if !self.options.is_empty() {
-            println!("Options: \n{}\n", help::options_list(&self.options));
+            println!(
+                "\nOptions: \n{}",
+                help::options_list(&self.options, column_width)
+            );
         }
+
+        println!();
+
         std::process::exit(0);
     }
 }

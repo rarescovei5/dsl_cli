@@ -24,7 +24,7 @@ pub fn validate_arguments_definition(arguments: &[CliArgument<'_>]) -> Result<()
             (_, true) => {}
         }
 
-        match (&saw_variadic, &arg.multiple) {
+        match (&saw_variadic, &arg.variadic) {
             ((true, _), _) => {
                 return Err(CliError::DefinitionError(
                     DefinitionError::VariadicArgumentBeforeArguments(saw_variadic.1),

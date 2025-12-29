@@ -160,7 +160,7 @@ pub fn usage_string(
 
 pub fn reconstruct_arg_string(arg: &CliArgument<'_>) -> String {
     let mut name = arg.name.to_string();
-    if arg.multiple {
+    if arg.variadic {
         name += "...";
     }
     if arg.required {

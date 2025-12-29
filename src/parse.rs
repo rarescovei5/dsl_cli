@@ -72,7 +72,7 @@ fn is_known_option(segment: &str, options: &[CliOption<'_>]) -> bool {
 pub fn init_parsed_args(args: &[CliArgument<'_>]) -> ParsedArgs {
     let mut parsed = ParsedArgs::new();
     for arg in args {
-        let value = if arg.multiple {
+        let value = if arg.variadic {
             ParsedArg::Multiple(None)
         } else {
             ParsedArg::Single(None)
@@ -159,7 +159,7 @@ pub fn parse_positional_args(
         let arg_def = &arg_defs[idx];
         let token = stream.next().unwrap();
 
-        if arg_def.multiple {
+        if arg_def.variadic {
             // Variadic: consume all remaining non-option tokens
             let mut values = vec![token];
             while !stream.peek_is_option() && stream.peek().is_some() {
@@ -201,7 +201,7 @@ pub fn parse_option_args(
         let arg_def = &option.arguments[idx];
         let token = stream.next().unwrap();
 
-        if arg_def.multiple {
+        if arg_def.variadic {
             let mut values = vec![token];
             while !stream.peek_is_option() && stream.peek().is_some() {
                 values.push(stream.next().unwrap());

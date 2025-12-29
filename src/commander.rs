@@ -175,7 +175,7 @@ impl<'a> Cli<'a> {
     }
 
     // Parse Implementation
-    pub fn try_parse(&mut self, env_args: Vec<String>) -> Result<(), CliError> {
+    fn try_parse(&mut self, env_args: Vec<String>) -> Result<(), CliError> {
         // Validate CLI definition (developer errors)
         self.validate_definition()?;
 
@@ -290,7 +290,7 @@ impl<'a> Cli<'a> {
                 // It's a positional argument
                 if positional_idx < args.len() {
                     let arg_def = &args[positional_idx];
-                    if arg_def.multiple {
+                    if arg_def.variadic {
                         // Variadic: this token + all remaining non-option tokens
                         let mut values = vec![token];
                         while !stream.peek_is_option() && stream.peek().is_some() {
@@ -332,7 +332,7 @@ impl<'a> Cli<'a> {
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     // User logic
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    pub fn help(&self) {
+    fn help(&self) {
         if let Some(name) = &self.name {
             let version = "v".to_string() + self.version.as_ref().unwrap_or(&Cow::Borrowed(""));
             println!("\n{} {}", name, version);

@@ -4,7 +4,7 @@ use std::borrow::Cow;
 pub struct CliArgument<'a> {
     pub name: Cow<'a, str>,
     pub description: Option<Cow<'a, str>>,
-    pub multiple: bool,
+    pub variadic: bool,
     pub required: bool,
 }
 
@@ -16,12 +16,12 @@ impl<'a> CliArgument<'a> {
     {
         let name = name.into();
 
-        let (name, multiple, required) = parse_argument(&name);
+        let (name, variadic, required) = parse_argument(&name);
 
         Self {
             name,
             description: description.map(|d| d.into()),
-            multiple,
+            variadic,
             required,
         }
     }
@@ -38,17 +38,17 @@ pub fn parse_argument<'a>(argument: &Cow<'a, str>) -> (Cow<'a, str>, bool, bool)
     // Strip name of < or [
     let mut name = argument.get(1..argument.len() - 1).unwrap();
 
-    // Check if the argument is multiple
-    let multiple = name.ends_with("...");
+    // Check if the argument is variadic
+    let variadic = name.ends_with("...");
 
-    // If the argument is multiple, strip the ...
-    if multiple {
+    // If the argument is variadic, strip the ...
+    if variadic {
         name = name
             .strip_suffix("...")
             .expect("Argument name ends with '...' so there must be a '...' to strip.");
     }
 
-    (name.to_string().into(), multiple, required)
+    (name.to_string().into(), variadic, required)
 }
 
 pub fn is_argument<'a>(argument: &Cow<'a, str>) -> bool {

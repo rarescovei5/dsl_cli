@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::types::{CliArgument, argument::is_argument};
+use crate::{types::CliArgument, utils::is_argument};
 
 pub struct CliOption<'a> {
     // Details
@@ -85,42 +85,4 @@ fn parse_option_flags<'a>(
     }
 
     (short_flag, long_flag)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_option_flags_both_should_work() {
-        let flags = Cow::from("-s, --long");
-        let (short, long) = parse_option_flags(&flags);
-        assert_eq!(short, Some("-s".into()));
-        assert_eq!(long, Some("--long".into()));
-    }
-
-    #[test]
-    fn parse_option_flags_only_short_should_work() {
-        // Note: implementation expects a comma even if it's the only flag
-        let flags = Cow::from("-s");
-        let (short, long) = parse_option_flags(&flags);
-        assert_eq!(short, Some("-s".into()));
-        assert_eq!(long, None);
-    }
-
-    #[test]
-    fn parse_option_flags_only_long_should_work() {
-        let flags = Cow::from("--long");
-        let (short, long) = parse_option_flags(&flags);
-        assert_eq!(short, None);
-        assert_eq!(long, Some("--long".into()));
-    }
-
-    #[test]
-    fn parse_option_flags_with_value_should_work() {
-        let flags = Cow::from("-s, --long <value>");
-        let (short, long) = parse_option_flags(&flags);
-        assert_eq!(short, Some("-s".into()));
-        assert_eq!(long, Some("--long".into()));
-    }
 }

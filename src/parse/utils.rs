@@ -3,13 +3,54 @@
 use std::{iter::Peekable, vec::IntoIter};
 
 use crate::{
-    error::{CliError, UserError},
+    error::{CliError, DefinitionError, UserError},
     parse::{
         cli::init_parsed_args,
         types::{ParsedArg, ParsedArgs, ParsedOption, ParsedOptions},
     },
     types::{CliArgument, CliOption},
 };
+
+// =============================================================================
+// Argument Definition Validation
+// =============================================================================
+
+pub fn validate_arguments_definition(arguments: &[CliArgument<'_>]) -> Result<(), CliError> {
+    // Disallow: [optional] <required>
+    let mut saw_optional: (bool, String) = (false, String::new());
+    let mut saw_variadic: (bool, String) = (false, String::new());
+
+    for arg in arguments {
+        match (&saw_optional, &arg.required) {
+            ((true, _), true) => {
+                return Err(CliError::DefinitionError(
+                    DefinitionError::RequiredArgumentAfterOptionalArgument(
+                        saw_optional.1,
+                        arg.name.to_string(),
+                    ),
+                ));
+            }
+            (_, false) => {
+                saw_optional = (true, arg.name.to_string());
+            }
+            (_, true) => {}
+        }
+
+        match (&saw_variadic, &arg.variadic) {
+            ((true, _), _) => {
+                return Err(CliError::DefinitionError(
+                    DefinitionError::VariadicArgumentBeforeArguments(saw_variadic.1),
+                ));
+            }
+            (_, true) => {
+                saw_variadic = (true, arg.name.to_string());
+            }
+            (_, false) => {}
+        }
+    }
+
+    Ok(())
+}
 
 // =============================================================================
 // User Input Validation (returns errors, doesn't exit)

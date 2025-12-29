@@ -5,13 +5,12 @@ use crate::{
     parse::{
         types::{ParsedArg, ParsedArgs, ParsedOption, ParsedOptions},
         utils::{
-            TokenStream, find_option, parse_option_args, validate_no_unknown_options,
-            validate_required_options,
+            TokenStream, find_option, parse_option_args, validate_arguments_definition,
+            validate_no_unknown_options, validate_required_options,
         },
     },
     types::{Cli, CliArgument, CliOption},
     utils::reconstruct_arg_string,
-    validate::validate_arguments_definition,
 };
 
 impl<'a> Cli<'a> {

@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use crate::utils::is_argument;
+
 #[derive(Clone)]
 pub struct CliArgument<'a> {
     pub(crate) name: Cow<'a, str>,
@@ -50,9 +52,4 @@ fn parse_argument<'a>(argument: &Cow<'a, str>) -> (Cow<'a, str>, bool, bool) {
     }
 
     (name.to_string().into(), variadic, required)
-}
-
-pub fn is_argument<'a>(argument: &Cow<'a, str>) -> bool {
-    argument.starts_with("<") && argument.ends_with(">")
-        || argument.starts_with("[") && argument.ends_with("]")
 }

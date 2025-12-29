@@ -2,10 +2,10 @@ use std::borrow::Cow;
 
 #[derive(Clone)]
 pub struct CliArgument<'a> {
-    pub name: Cow<'a, str>,
-    pub description: Option<Cow<'a, str>>,
-    pub variadic: bool,
-    pub required: bool,
+    pub(crate) name: Cow<'a, str>,
+    pub(crate) description: Option<Cow<'a, str>>,
+    pub(crate) variadic: bool,
+    pub(crate) required: bool,
 }
 
 impl<'a> CliArgument<'a> {

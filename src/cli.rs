@@ -2,27 +2,27 @@ use crate::{
     argument::CliArgument,
     command::CliCommand,
     error::{CliError, UserError},
-    help::{self, reconstruct_arg_string},
     option::CliOption,
     parse::{
         ParsedArg, ParsedArgs, ParsedOptions, TokenStream, find_option, init_parsed_args,
         init_parsed_options, parse_option_args, validate_no_unknown_options,
         validate_required_options,
     },
+    utils::reconstruct_arg_string,
     validate::validate_arguments_definition,
 };
 use std::borrow::Cow;
 
 pub struct Cli<'a> {
     // Instance
-    name: Option<Cow<'a, str>>,
-    description: Option<Cow<'a, str>>,
-    version: Option<Cow<'a, str>>,
+    pub(crate) name: Option<Cow<'a, str>>,
+    pub(crate) description: Option<Cow<'a, str>>,
+    pub(crate) version: Option<Cow<'a, str>>,
     // Logic
-    commands: Vec<CliCommand<'a>>,
-    options: Vec<CliOption<'a>>,
-    arguments: Vec<CliArgument<'a>>,
-    action: Option<Box<dyn Fn(ParsedArgs, ParsedOptions) + 'a>>,
+    pub(crate) commands: Vec<CliCommand<'a>>,
+    pub(crate) options: Vec<CliOption<'a>>,
+    pub(crate) arguments: Vec<CliArgument<'a>>,
+    pub(crate) action: Option<Box<dyn Fn(ParsedArgs, ParsedOptions) + 'a>>,
     // Parsed data
     pub parsed_args: ParsedArgs,
     pub parsed_options: ParsedOptions,
@@ -327,61 +327,5 @@ impl<'a> Cli<'a> {
         }
 
         Ok((parsed_args, parsed_options))
-    }
-
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    // User logic
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    fn help(&self) {
-        if let Some(name) = &self.name {
-            let version = "v".to_string() + self.version.as_ref().unwrap_or(&Cow::Borrowed(""));
-            println!("\n{} {}", name, version);
-        }
-
-        // Print description
-        if let Some(description) = &self.description {
-            println!("\n{}", description);
-        }
-
-        let executable_name = std::env::args()
-            .next()
-            .and_then(|path| {
-                std::path::Path::new(&path)
-                    .file_name()
-                    .map(|s| s.to_string_lossy().into_owned())
-            })
-            .unwrap_or_else(|| "cli".to_string());
-
-        let usage_string = help::usage_string(&self.arguments, &self.options, None);
-        if !usage_string.is_empty() {
-            println!("\nUsage: {} {}", executable_name, usage_string);
-        }
-
-        let column_width =
-            help::arguments_width(&self.arguments).max(help::options_width(&self.options));
-
-        if !self.arguments.is_empty() {
-            println!(
-                "\nArguments: \n{}",
-                help::arguments_list(&self.arguments, column_width)
-            );
-        }
-        if !self.options.is_empty() {
-            println!(
-                "\nOptions: \n{}",
-                help::options_list(&self.options, column_width)
-            );
-        }
-        if !self.commands.is_empty() {
-            println!("\nCommands: \n{}", help::commands_list(&self.commands));
-            println!(
-                "\nFor info on a specific command, use: {} help [command]",
-                executable_name
-            );
-        }
-
-        println!();
-
-        std::process::exit(0);
     }
 }

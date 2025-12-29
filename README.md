@@ -25,7 +25,6 @@ Inspired by [Commander.js](https://github.com/tj/commander.js), but built for Ru
     - [Custom argument processing](#custom-argument-processing)
   - [Action handler](#action-handler)
 - [Automated help](#automated-help)
-  - [.parse() and .try_parse()](#parse-and-try_parse)
   - [Parsing Configuration](#parsing-configuration)
   - [Type conversion](#type-conversion)
 

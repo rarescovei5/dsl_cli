@@ -3,8 +3,5 @@ name = "commander"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[lib]
 
-[[example]]
-name = "str"
-path = "examples/string_utils.rs"

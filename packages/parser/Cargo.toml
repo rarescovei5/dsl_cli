@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+
+[dev-dependencies]
+args_derive = { path = "../args_derive" }
+opts_derive = { path = "../opts_derive" }

@@ -3,17 +3,30 @@
 version = 4
 
 [[package]]
+name = "args_derive"
+version = "0.1.0"
+dependencies = [
+ "parser",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "commander"
 version = "0.1.0"
 dependencies = [
- "from_derive",
+ "args_derive",
+ "opts_derive",
  "parser",
 ]
 
 [[package]]
-name = "from_derive"
+name = "opts_derive"
 version = "0.1.0"
 dependencies = [
+ "args_derive",
+ "parser",
  "proc-macro2",
  "quote",
  "syn",
@@ -22,6 +35,10 @@ dependencies = [
 [[package]]
 name = "parser"
 version = "0.1.0"
+dependencies = [
+ "args_derive",
+ "opts_derive",
+]
 
 [[package]]
 name = "proc-macro2"

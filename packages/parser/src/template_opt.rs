@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{ParsedOpts, TemplateArgs, initialize_parsed_args, parser::OptValue};
+use crate::{OptValue, ParsedOpts, TemplateArgs, initialize_parsed_args};
 
 #[derive(Clone, Debug)]
 pub enum TemplateOptFlags {

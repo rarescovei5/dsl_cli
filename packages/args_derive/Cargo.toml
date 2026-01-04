@@ -1,5 +1,5 @@
 [package]
-name = "from_derive"
+name = "args_derive"
 version = "0.1.0"
 edition = "2024"
 
@@ -10,3 +10,6 @@ proc-macro = true
 syn = "2.0"
 quote = "1.0"
 proc-macro2 = "1.0"
+
+[dev-dependencies]
+parser = { path = "../parser" }

@@ -1,34 +1,25 @@
-use std::{any::Any, collections::HashMap, iter::Peekable};
+use std::{any::Any, iter::Peekable};
 
 use crate::{
-    ParseError, TemplateArg, TemplateArgs, TemplateOpts, initialize_parsed_args,
-    initialize_parsed_opts,
+    OptValue, ParseError, ParsedArgs, ParsedOpts, TemplateArg, TemplateArgs, TemplateOpts,
+    initialize_parsed_args, initialize_parsed_opts,
 };
-#[derive(Debug)]
-pub enum OptValue {
-    Flag(bool),
-    Args(ParsedArgs),
-}
-impl OptValue {
-    pub fn as_flag(&self) -> bool {
-        match self {
-            OptValue::Flag(flag) => *flag,
-            _ => panic!("Expected OptValue::Flag"),
-        }
-    }
-    pub fn as_args(&self) -> &ParsedArgs {
-        match self {
-            OptValue::Args(args) => args,
-            _ => panic!("Expected OptValue::Args"),
-        }
-    }
-}
-pub type ParsedArgs = HashMap<String, Option<Box<dyn Any>>>;
-pub type ParsedOpts = HashMap<String, Option<OptValue>>;
 
 pub struct Parser;
 
 impl Parser {
+    /// Takes 3 Arguments:
+    /// - env_args: A vector of strings representing the arguments passed to the program for that command
+    /// - template_args and template_opts: Used to define how the env_args are parsed
+    ///
+    /// Returns a tuple of ParsedArgs and ParsedOpts
+    /// - ParsedArgs: HashMap<String, Option<Box<dyn Any>>>
+    /// - ParsedOpts: HashMap<String, Option<OptValue>>
+    ///
+    /// How is `Option` used in this context?
+    /// - For both arguments and options, if they are optional,
+    ///   the parsed value will be None or Some(T)
+    /// - For required arguments and options, it is guaranteed to be Some(T)
     pub fn parse_args(
         env_args: Vec<String>,
         template_args: &TemplateArgs,
@@ -170,8 +161,4 @@ impl Parser {
     fn is_option_token(token: &str) -> bool {
         token.starts_with('-')
     }
-}
-
-pub trait FromParsedArgs: Sized {
-    fn from_parsed_args(args: HashMap<String, Option<Box<dyn Any>>>) -> Self;
 }

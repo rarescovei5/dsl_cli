@@ -5,3 +5,13 @@ edition = "2024"
 
 [lib]
 
+[workspace]
+resolver = "2"
+members = [
+    "packages/parser",
+    "packages/from_derive",
+]
+
+[dependencies]
+parser = { path = "packages/parser" }
+from_derive = { path = "packages/from_derive" }

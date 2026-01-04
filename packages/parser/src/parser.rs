@@ -1,19 +1,38 @@
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, collections::HashMap, iter::Peekable};
 
-use crate::parse::{
-    ParseError, TemplateArgs, TemplateOpts, initialize_parsed_args, initialize_parsed_opts,
+use crate::{
+    ParseError, TemplateArg, TemplateArgs, TemplateOpts, initialize_parsed_args,
+    initialize_parsed_opts,
 };
-
+#[derive(Debug)]
+pub enum OptValue {
+    Flag(bool),
+    Args(ParsedArgs),
+}
+impl OptValue {
+    pub fn as_flag(&self) -> bool {
+        match self {
+            OptValue::Flag(flag) => *flag,
+            _ => panic!("Expected OptValue::Flag"),
+        }
+    }
+    pub fn as_args(&self) -> &ParsedArgs {
+        match self {
+            OptValue::Args(args) => args,
+            _ => panic!("Expected OptValue::Args"),
+        }
+    }
+}
 pub type ParsedArgs = HashMap<String, Option<Box<dyn Any>>>;
-pub type ParsedOpts = HashMap<String, Option<Box<dyn Any>>>;
+pub type ParsedOpts = HashMap<String, Option<OptValue>>;
 
 pub struct Parser;
 
 impl Parser {
     pub fn parse_args(
         env_args: Vec<String>,
-        template_args: TemplateArgs,
-        template_opts: TemplateOpts,
+        template_args: &TemplateArgs,
+        template_opts: &TemplateOpts,
     ) -> Result<(ParsedArgs, ParsedOpts), ParseError> {
         let mut parsed_args = initialize_parsed_args(&template_args);
         let mut parsed_opts = initialize_parsed_opts(&template_opts);
@@ -23,18 +42,18 @@ impl Parser {
         while let Some(token) = tokens.next() {
             if Self::is_option_token(&token) {
                 // Check if the option is included in the template
-                if !template_opts.iter().any(|opt| opt.flags() == token) {
+                if !template_opts.iter().any(|opt| opt.flags() == &token) {
                     return Err(ParseError::InvalidOptionFlag(token));
                 }
 
                 let opt_def = template_opts
                     .iter()
-                    .find(|opt| opt.flags() == token)
+                    .find(|opt| opt.flags() == &token)
                     .unwrap();
 
                 // Option has no arguments = flag-only option
                 if opt_def.args().is_empty() {
-                    parsed_opts.insert(opt_def.name(), Some(Box::new(true)));
+                    parsed_opts.insert(opt_def.name().to_string(), Some(OptValue::Flag(true)));
                     continue;
                 }
 
@@ -49,25 +68,18 @@ impl Parser {
                     }
 
                     let arg_def = &opt_args[idx];
-                    if arg_def.variadic() {
-                        let mut values = vec![tokens.next().unwrap()];
-                        while tokens.peek().is_some()
-                            && !Self::is_option_token(tokens.peek().unwrap())
-                        {
-                            values.push(tokens.next().unwrap());
-                        }
-                        parsed_opt_args.insert(arg_def.name(), Some(Box::new(values)));
-                        idx += 1;
-                    } else {
-                        parsed_opt_args
-                            .insert(arg_def.name(), Some(Box::new(tokens.next().unwrap())));
-                        idx += 1;
-                    }
+                    let token = tokens.next().unwrap();
+                    let parsed_value = Self::parse_arg(arg_def, token, &mut tokens)?;
+                    parsed_opt_args.insert(arg_def.name().to_string(), Some(parsed_value));
+                    idx += 1;
                 }
 
                 Self::check_for_missing_required_args(&opt_args, idx, true)?;
 
-                parsed_opts.insert(opt_def.name(), Some(Box::new(parsed_opt_args)));
+                parsed_opts.insert(
+                    opt_def.name().to_string(),
+                    Some(OptValue::Args(parsed_opt_args)),
+                );
             } else {
                 // Check if we've gone past the number of positional arguments
                 if positional_idx >= template_args.len() {
@@ -78,18 +90,9 @@ impl Parser {
 
                 // Handle positional arguments
                 let arg_def = &template_args[positional_idx];
-                if arg_def.variadic() {
-                    let mut values = vec![token];
-                    while tokens.peek().is_some() && !Self::is_option_token(tokens.peek().unwrap())
-                    {
-                        values.push(tokens.next().unwrap());
-                    }
-                    parsed_args.insert(arg_def.name(), Some(Box::new(values)));
-                    positional_idx += 1;
-                } else {
-                    parsed_args.insert(arg_def.name(), Some(Box::new(token)));
-                    positional_idx += 1;
-                }
+                let parsed_value = Self::parse_arg(arg_def, token, &mut tokens)?;
+                parsed_args.insert(arg_def.name().to_string(), Some(parsed_value));
+                positional_idx += 1;
             }
         }
 
@@ -97,6 +100,31 @@ impl Parser {
         Self::check_for_missing_required_opts(&parsed_opts, &template_opts)?;
 
         Ok((parsed_args, parsed_opts))
+    }
+
+    // ------------------------------------------------------------
+    // Utils
+    // ------------------------------------------------------------
+    fn parse_arg(
+        arg_def: &Box<dyn TemplateArg>,
+        current_token: String,
+        tokens: &mut Peekable<std::vec::IntoIter<String>>,
+    ) -> Result<Box<dyn Any>, ParseError> {
+        if arg_def.variadic() {
+            let mut raw_tokens = vec![current_token];
+            while tokens.peek().is_some() && !Self::is_option_token(tokens.peek().unwrap()) {
+                raw_tokens.push(tokens.next().unwrap());
+            }
+            let values = arg_def
+                .convert_many(raw_tokens)
+                .map_err(ParseError::InvalidTypeProvided)?;
+            Ok(values)
+        } else {
+            let token = arg_def
+                .convert_one(current_token)
+                .map_err(ParseError::InvalidTypeProvided)?;
+            Ok(token)
+        }
     }
 
     // ------------------------------------------------------------
@@ -108,8 +136,8 @@ impl Parser {
     ) -> Result<(), ParseError> {
         let mut missing_required_opts = Vec::new();
         for opt in template_opts.iter().filter(|opt| !opt.optional()) {
-            if parsed_opts.get(&opt.name()).unwrap().is_none() {
-                missing_required_opts.push(opt.name());
+            if parsed_opts.get(&opt.name().to_string()).unwrap().is_none() {
+                missing_required_opts.push(opt.name().to_string());
             }
         }
         if !missing_required_opts.is_empty() {
@@ -126,7 +154,7 @@ impl Parser {
             let missing_args = template_args[positional_idx..]
                 .iter()
                 .filter(|arg| !arg.optional())
-                .map(|arg| arg.name())
+                .map(|arg| arg.name().to_string())
                 .collect::<Vec<String>>();
             if are_opt_args {
                 return Err(ParseError::MissingRequiredArgumentsForOption(missing_args));
@@ -142,4 +170,8 @@ impl Parser {
     fn is_option_token(token: &str) -> bool {
         token.starts_with('-')
     }
+}
+
+pub trait FromParsedArgs: Sized {
+    fn from_parsed_args(args: HashMap<String, Option<Box<dyn Any>>>) -> Self;
 }

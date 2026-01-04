@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use crate::parse::{TemplateArgs, parser::ParsedOpts, template_arg::initialize_parsed_args};
+use crate::{ParsedOpts, TemplateArgs, initialize_parsed_args, parser::OptValue};
 
+#[derive(Clone, Debug)]
 pub enum TemplateOptFlags {
     Short(char),
     Long(String),
@@ -24,21 +25,21 @@ impl PartialEq<String> for TemplateOptFlags {
 }
 
 pub trait TemplateOpt {
-    fn name(&self) -> String;
-    fn flags(&self) -> TemplateOptFlags;
+    fn name(&self) -> &str;
+    fn flags(&self) -> &TemplateOptFlags;
     fn optional(&self) -> bool;
-    fn args(&self) -> TemplateArgs;
+    fn args(&self) -> &TemplateArgs;
 }
 
 pub fn initialize_parsed_opts(template_opts: &TemplateOpts) -> ParsedOpts {
     let mut parsed_opts: ParsedOpts = HashMap::new();
     for opt in template_opts {
         if opt.args().is_empty() {
-            parsed_opts.insert(opt.name(), None);
+            parsed_opts.insert(opt.name().to_string(), None);
         } else {
             parsed_opts.insert(
-                opt.name(),
-                Some(Box::new(initialize_parsed_args(&opt.args()))),
+                opt.name().to_string(),
+                Some(OptValue::Args(initialize_parsed_args(&opt.args()))),
             );
         }
     }

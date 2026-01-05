@@ -17,9 +17,14 @@ name = "commander"
 version = "0.1.0"
 dependencies = [
  "args_derive",
+ "core",
  "opts_derive",
  "parser",
 ]
+
+[[package]]
+name = "core"
+version = "0.1.0"
 
 [[package]]
 name = "opts_derive"

@@ -9,7 +9,7 @@ edition = "2024"
 resolver = "2"
 members = [
     "packages/parser",
-    "packages/args_derive", "packages/opts_derive",
+    "packages/args_derive", "packages/opts_derive", "packages/core",
 ]
 default-members = [
     "packages/parser",
@@ -21,3 +21,4 @@ default-members = [
 parser = { path = "packages/parser" }
 args_derive = { path = "packages/args_derive" }
 opts_derive = { path = "packages/opts_derive" }
+core = { path = "packages/core" }

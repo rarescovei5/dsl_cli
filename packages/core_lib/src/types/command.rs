@@ -1,24 +1,21 @@
-use crate::{argument::CliArgument, option::CliOption};
+use super::{CliArgument, CliOption};
 
+#[derive(Debug, Clone)]
 pub struct CliCommand {
-    name: String,
-    description: Option<String>,
-    options: Vec<CliOption>,
-    arguments: Vec<CliArgument>,
+    pub(crate) name: String,
+    pub(crate) description: Option<String>,
+    pub(crate) options: Vec<CliOption>,
+    pub(crate) arguments: Vec<CliArgument>,
 }
 
 impl CliCommand {
-    pub fn new(name: impl Into<String>) -> Self {
+    pub fn new(name: impl Into<String>, description: Option<impl Into<String>>) -> Self {
         Self {
             name: name.into(),
-            description: None,
+            description: description.map(|d| d.into()),
             options: Vec::new(),
             arguments: Vec::new(),
         }
-    }
-    pub fn description(&mut self, description: impl Into<String>) -> &mut Self {
-        self.description = Some(description.into());
-        self
     }
     pub fn add_argument(&mut self, argument: CliArgument) -> &mut Self {
         self.arguments.push(argument);

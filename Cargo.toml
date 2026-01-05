@@ -1,5 +1,5 @@
 [package]
-name = "commander"
+name = "dsl_cli"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,17 +8,16 @@ edition = "2024"
 [workspace]
 resolver = "2"
 members = [
-    "packages/parser",
-    "packages/args_derive", "packages/opts_derive", "packages/core",
-]
-default-members = [
-    "packages/parser",
-    "packages/args_derive",
-    "packages/opts_derive",
+    "packages/core_lib",
+    "packages/cli_macro",
+    "packages/common"
 ]
 
 [dependencies]
-parser = { path = "packages/parser" }
-args_derive = { path = "packages/args_derive" }
-opts_derive = { path = "packages/opts_derive" }
-core = { path = "packages/core" }
+cli_macro = { path = "packages/cli_macro" }
+core_lib = { path = "packages/core_lib" }
+common = { path = "packages/common" }
+
+[[example]]
+name = "string_utils"
+path = "examples/string_utils.rs"

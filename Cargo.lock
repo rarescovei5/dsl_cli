@@ -3,46 +3,32 @@
 version = 4
 
 [[package]]
-name = "args_derive"
+name = "cli_macro"
 version = "0.1.0"
 dependencies = [
- "parser",
  "proc-macro2",
  "quote",
  "syn",
 ]
 
 [[package]]
-name = "commander"
+name = "common"
+version = "0.1.0"
+
+[[package]]
+name = "core_lib"
 version = "0.1.0"
 dependencies = [
- "args_derive",
- "core",
- "opts_derive",
- "parser",
+ "common",
 ]
 
 [[package]]
-name = "core"
-version = "0.1.0"
-
-[[package]]
-name = "opts_derive"
+name = "dsl_cli"
 version = "0.1.0"
 dependencies = [
- "args_derive",
- "parser",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "parser"
-version = "0.1.0"
-dependencies = [
- "args_derive",
- "opts_derive",
+ "cli_macro",
+ "common",
+ "core_lib",
 ]
 
 [[package]]
@@ -65,9 +51,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.112"
+version = "2.0.113"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21f182278bf2d2bcb3c88b1b08a37df029d71ce3d3ae26168e3c653b213b99d4"
+checksum = "678faa00651c9eb72dd2020cbdf275d92eccb2400d568e419efdd64838145cb4"
 dependencies = [
  "proc-macro2",
  "quote",

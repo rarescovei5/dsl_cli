@@ -1,28 +1,28 @@
-use commander::Cli;
+use dsl_cli::cli;
+
 fn main() {
-    let mut cli_program = Cli::new();
+    cli!(
+        name "string_utils",
+        version "0.1.0",
+        description "A simple CLI for string utilities",
 
-    // Instance details
-    cli_program
-        .name("string-util")
-        .version("0.1.0")
-        .description("A simple rust cli that exposes string utilities");
+        cmd split "Split a string into words" {
+            arg string "The string to split": String,
+            opt "-s, --separator" "The separator to use" {
+                arg string: String,
+            },
+        },
+    );
 
-    // Separate command
-    cli_program
-        .command("split")
-        .description("Split a string into substrings and display as an array")
-        .argument("<string>", Some("The String to split"))
-        .option("-s, --separator <char>", Some("The Delimiter to Use"))
-        .action(|args, options| {
-            let string_to_split = args.get("string").unwrap();
-            let separator = options.get("--separator").get("char").unwrap();
-            // split the string by the separator
+    match parsed {
+        Command::Split(args, opts) => {
             println!(
-                "{:?}",
-                string_to_split.split(&separator).collect::<Vec<&str>>()
+                "Split string: {}",
+                args.string
+                    .split(&opts.separator)
+                    .collect::<Vec<&str>>()
+                    .join(" ")
             );
-        });
-
-    cli_program.parse();
+        }
+    }
 }

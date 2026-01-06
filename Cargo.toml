@@ -1,10 +1,23 @@
 [package]
-name = "commander"
+name = "dsl_cli"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+
+[workspace]
+resolver = "2"
+members = [
+    "packages/cli_core",
+    "packages/cli_macro",
+    "packages/cli_common"
+]
+
 [dependencies]
+cli_macro = { path = "packages/cli_macro" }
+cli_core = { path = "packages/cli_core" }
+cli_common = { path = "packages/cli_common" }
 
 [[example]]
-name = "str"
+name = "string_utils"
 path = "examples/string_utils.rs"

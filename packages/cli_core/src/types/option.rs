@@ -1,4 +1,4 @@
-use common::CliOptionFlags;
+use cli_common::CliOptionFlags;
 
 use super::CliArgument;
 

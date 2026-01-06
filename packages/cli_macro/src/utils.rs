@@ -92,3 +92,13 @@ pub fn get_effective_type(arg: &Argument) -> Type {
     }
     arg.ty.clone()
 }
+
+/// Generate a struct name
+pub fn generate_args_struct_name(prefix: &str) -> String {
+    format!("{}Args", prefix)
+}
+
+/// Generate a struct name
+pub fn generate_opts_struct_name(prefix: &str) -> String {
+    format!("{}Opts", prefix)
+}

@@ -3,6 +3,17 @@
 version = 4
 
 [[package]]
+name = "cli_common"
+version = "0.1.0"
+
+[[package]]
+name = "cli_core"
+version = "0.1.0"
+dependencies = [
+ "cli_common",
+]
+
+[[package]]
 name = "cli_macro"
 version = "0.1.0"
 dependencies = [
@@ -12,23 +23,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "common"
-version = "0.1.0"
-
-[[package]]
-name = "core_lib"
-version = "0.1.0"
-dependencies = [
- "common",
-]
-
-[[package]]
 name = "dsl_cli"
 version = "0.1.0"
 dependencies = [
+ "cli_common",
+ "cli_core",
  "cli_macro",
- "common",
- "core_lib",
 ]
 
 [[package]]

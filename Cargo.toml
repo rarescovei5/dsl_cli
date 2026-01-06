@@ -8,15 +8,15 @@ edition = "2024"
 [workspace]
 resolver = "2"
 members = [
-    "packages/core_lib",
+    "packages/cli_core",
     "packages/cli_macro",
-    "packages/common"
+    "packages/cli_common"
 ]
 
 [dependencies]
 cli_macro = { path = "packages/cli_macro" }
-core_lib = { path = "packages/core_lib" }
-common = { path = "packages/common" }
+cli_core = { path = "packages/cli_core" }
+cli_common = { path = "packages/cli_common" }
 
 [[example]]
 name = "string_utils"

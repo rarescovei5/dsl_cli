@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub enum ParseError {
-    NoCommandProvided,
+    InvalidCommand,
     TooManyArguments(Vec<String>),
     MissingRequiredArguments(Vec<String>),
     MissingRequiredOptions(Vec<String>),

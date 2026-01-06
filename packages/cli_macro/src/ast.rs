@@ -1,3 +1,4 @@
+use proc_macro2::TokenTree;
 use quote::quote;
 use syn::{
     Expr, Ident, LitStr, Token, Type, braced,
@@ -97,7 +98,7 @@ impl Parse for Command {
             let keyword: Ident = content.parse()?;
             match keyword.to_string().as_str() {
                 "arg" => {
-                    arguments.push(parse_argument(&content)?);
+                    arguments.push(parse_argument(&content, true)?);
                 }
                 "opt" => {
                     options.push(parse_option(&content, false)?);
@@ -126,22 +127,36 @@ impl Parse for Command {
     }
 }
 
-fn parse_argument(input: ParseStream) -> syn::Result<Argument> {
-    // arg <name> ["description"] [type] [= <default>],
+fn parse_argument(input: ParseStream, is_positional: bool) -> syn::Result<Argument> {
+    // arg <name> ["description"] [: type] [= <default>],
     let name: Ident = input.parse()?;
 
     // Optional description
     let description = if input.peek(LitStr) {
+        if !is_positional {
+            return Err(syn::Error::new(
+                input.span(),
+                "For arguments in options, a description is not required. Consider adding info about arguments in the option description directly.",
+            ));
+        }
         Some(input.parse()?)
     } else {
         None
     };
 
     // Parse type (default is String)
-    let ty: Type = if input.peek(Token![,]) {
+    // Parse type (default is String)
+    let ty: Type = if input.is_empty() || input.peek(Token![,]) || input.peek(Token![=]) {
         syn::parse_quote!(String)
-    } else {
+    } else if input.peek(Token![:]) {
+        input.parse::<Token![:]>()?;
         input.parse()?
+    } else {
+        let unexpected: TokenTree = input.parse()?;
+        return Err(syn::Error::new(
+            unexpected.span(),
+            format!("expected ':', got {}", unexpected),
+        ));
     };
     let ty_str = quote!(#ty).to_string();
 
@@ -191,7 +206,7 @@ fn parse_option(input: ParseStream, required: bool) -> syn::Result<CliOption> {
         while !content.is_empty() {
             let keyword: Ident = content.parse()?;
             if keyword == "arg" {
-                args.push(parse_argument(&content)?);
+                args.push(parse_argument(&content, false)?);
             } else {
                 return Err(syn::Error::new(
                     keyword.span(),

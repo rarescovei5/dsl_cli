@@ -8,16 +8,21 @@ type ParsedArgs = HashMap<String, Box<dyn Any>>;
 type ParsedOpts = HashMap<String, Box<dyn Any>>;
 
 impl Cli {
-    pub fn parse<TypedArgs: FromParsed, TypedOpts: FromParsed>(
+    pub fn parse(
         &self,
         command_name: String,
         env_args: Vec<String>,
-    ) -> Result<(TypedArgs, TypedOpts), ParseError> {
-        let command_def = self
-            .commands
-            .iter()
-            .find(|cmd| cmd.name == command_name)
-            .unwrap();
+    ) -> Result<(ParsedArgs, ParsedOpts), ParseError> {
+        let command_name = if command_name.is_empty() {
+            "cli".to_owned()
+        } else {
+            command_name
+        };
+
+        let command_def = match self.commands.iter().find(|cmd| cmd.name == command_name) {
+            Some(cmd) => cmd,
+            None => return Err(ParseError::InvalidCommand),
+        };
 
         let (parsed_args, parsed_opts) = Self::parse_args(
             env_args,
@@ -25,10 +30,7 @@ impl Cli {
             command_def.options.clone(),
         )?;
 
-        Ok((
-            TypedArgs::from_parsed(parsed_args),
-            TypedOpts::from_parsed(parsed_opts),
-        ))
+        Ok((parsed_args, parsed_opts))
     }
 
     fn parse_args(

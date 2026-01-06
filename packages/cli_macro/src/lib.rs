@@ -106,7 +106,7 @@ fn generate_from_parsed_impl_for_args(cmd: &Command) -> TokenStream2 {
     let field_names: Vec<&Ident> = cmd.arguments.iter().map(|arg| &arg.name).collect();
 
     quote! {
-        impl ::cli_core::FromParsed for #struct_name {
+        impl dsl_cli::cli_core::FromParsed for #struct_name {
             fn from_parsed(mut __parsed: ::std::collections::HashMap<String, Box<dyn ::std::any::Any>>) -> Self {
                 #(#field_extractions)*
                 Self {
@@ -238,7 +238,7 @@ fn generate_from_parsed_impl_for_opts(cmd: &Command) -> TokenStream2 {
                 opt.arguments.iter().map(|arg| &arg.name).collect();
 
             nested_impls.push(quote! {
-                impl ::cli_core::FromParsed for #nested_struct_name {
+                impl dsl_cli::cli_core::FromParsed for #nested_struct_name {
                     fn from_parsed(mut __parsed: ::std::collections::HashMap<String, Box<dyn ::std::any::Any>>) -> Self {
                         #(#nested_field_extractions)*
                         Self {
@@ -264,7 +264,7 @@ fn generate_from_parsed_impl_for_opts(cmd: &Command) -> TokenStream2 {
     quote! {
         #(#nested_impls)*
 
-        impl ::cli_core::FromParsed for #struct_name {
+        impl dsl_cli::cli_core::FromParsed for #struct_name {
             fn from_parsed(mut __parsed: ::std::collections::HashMap<String, Box<dyn ::std::any::Any>>) -> Self {
                 #(#field_extractions)*
                 Self {
@@ -328,12 +328,9 @@ pub fn cli(input: TokenStream) -> TokenStream {
         }
 
         let parsed = {
-            use ::cli_core::FromParsed;
-
-            // FromParsed implementations for Args
+            // FromParsed implementations
+            use dsl_cli::cli_core::FromParsed;
             #(#args_from_parsed)*
-
-            // FromParsed implementations for Opts
             #(#opts_from_parsed)*
 
             // CLI setup

@@ -2,6 +2,3 @@
 name = "cli_core"
 version = "0.1.0"
 edition = "2024"
-
-[dependencies]
-cli_common = { path = "../cli_common" }

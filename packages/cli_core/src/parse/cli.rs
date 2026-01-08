@@ -19,7 +19,12 @@ impl Cli {
         }
     }
     fn try_parse(&mut self, env_args: Vec<String>) -> Result<(ParsedArgs, ParsedOpts), ParseError> {
-        let potential_cmd_name = env_args.first().map(|s| s.as_str()).unwrap_or("cli");
+        let potential_cmd_name = &env_args
+            .first()
+            .map(|s| s.to_owned())
+            .unwrap_or("".to_owned());
+
+        let potential_cmd_name = potential_cmd_name.as_str();
 
         if potential_cmd_name == "help" {
             let second = env_args.get(1).map(|s| s.to_owned());
@@ -42,16 +47,22 @@ impl Cli {
             .map(|cmd| cmd.name.as_str())
             .collect::<Vec<&str>>();
 
+        let mut env_args = env_args.into_iter();
         let command_def = if possible_command_names.contains(&potential_cmd_name) {
+            self.used_command = Some(potential_cmd_name.to_owned());
+            env_args.next();
             self.commands
                 .iter()
                 .find(|cmd| cmd.name == potential_cmd_name)
                 .unwrap()
         } else if possible_command_names.contains(&"cli") {
+            env_args.next();
+            self.used_command = Some("cli".to_owned());
             &self.commands.iter().find(|cmd| cmd.name == "cli").unwrap()
         } else {
             return Err(ParseError::InvalidCommand(potential_cmd_name.to_string()));
         };
+        let env_args = env_args.collect::<Vec<String>>();
 
         let (parsed_args, parsed_opts) = Self::parse_args(
             env_args,

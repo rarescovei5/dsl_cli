@@ -20,4 +20,19 @@ impl CliArgument {
             variadic: variadic,
         }
     }
+    pub fn reconstruct_name(&self) -> String {
+        let mut name = self.name.clone();
+
+        if self.variadic {
+            name += "...";
+        }
+
+        if self.optional {
+            name = format!("[{}]", name);
+        } else {
+            name = format!("<{}>", name);
+        }
+
+        name
+    }
 }

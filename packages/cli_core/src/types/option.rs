@@ -17,6 +17,25 @@ impl PartialEq<String> for CliOptionFlags {
         }
     }
 }
+impl std::fmt::Display for CliOptionFlags {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CliOptionFlags::Short(c) => write!(f, "-{}", c),
+            CliOptionFlags::Long(s) => write!(f, "--{}", s),
+            CliOptionFlags::ShortAndLong(c, s) => write!(f, "-{}, --{}", c, s),
+        }
+    }
+}
+
+impl CliOptionFlags {
+    pub fn values(&self) -> [Option<String>; 2] {
+        match self {
+            CliOptionFlags::Short(c) => [Some(c.to_string()), None],
+            CliOptionFlags::Long(s) => [None, Some(s.to_string())],
+            CliOptionFlags::ShortAndLong(c, s) => [Some(c.to_string()), Some(s.to_string())],
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct CliOption {

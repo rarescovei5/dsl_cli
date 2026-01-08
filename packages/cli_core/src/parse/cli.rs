@@ -1,7 +1,6 @@
 use std::{any::Any, collections::HashMap, iter::Peekable};
 
-use super::error::ParseError;
-use crate::{Cli, CliArgument, CliOption, FromParsed};
+use crate::{Cli, CliArgument, CliOption, FromParsed, error::ParseError};
 
 // The Box<dyn Any> represents either None or a String
 type ParsedArgs = HashMap<String, Box<dyn Any>>;
@@ -9,7 +8,22 @@ type ParsedOpts = HashMap<String, Box<dyn Any>>;
 
 impl Cli {
     pub fn parse(
-        &self,
+        &mut self,
+        command_name: String,
+        env_args: Vec<String>,
+    ) -> (ParsedArgs, ParsedOpts) {
+        let result = self.try_parse(command_name, env_args);
+
+        match result {
+            Ok((parsed_args, parsed_opts)) => (parsed_args, parsed_opts),
+            Err(e) => {
+                self.handle_parse_error(e);
+                std::process::exit(1);
+            }
+        }
+    }
+    fn try_parse(
+        &mut self,
         command_name: String,
         env_args: Vec<String>,
     ) -> Result<(ParsedArgs, ParsedOpts), ParseError> {
@@ -19,9 +33,11 @@ impl Cli {
             command_name
         };
 
+        self.used_command = Some(command_name.clone());
+
         let command_def = match self.commands.iter().find(|cmd| cmd.name == command_name) {
             Some(cmd) => cmd,
-            None => return Err(ParseError::InvalidCommand),
+            None => return Err(ParseError::InvalidCommand(command_name)),
         };
 
         let (parsed_args, parsed_opts) = Self::parse_args(
@@ -50,7 +66,11 @@ impl Cli {
                     return Err(ParseError::InvalidOptionFlag(token));
                 }
 
-                let opt_def = template_opts.iter().find(|opt| opt.flags == token).unwrap();
+                let opt_idx = template_opts
+                    .iter()
+                    .position(|opt| opt.flags == token)
+                    .unwrap();
+                let opt_def = &template_opts[opt_idx];
 
                 // Option has no arguments = flag-only option
                 if opt_def.args.is_empty() {
@@ -82,7 +102,7 @@ impl Cli {
                     idx += 1;
                 }
 
-                Self::check_for_missing_required_args(&opt_args, idx, true)?;
+                Self::check_for_missing_required_args(&opt_args, idx, Some(opt_idx))?;
 
                 if opt_def.args.len() > 1 {
                     parsed_opts.insert(opt_def.name.clone(), Box::new(parsed_opt_args));
@@ -103,7 +123,7 @@ impl Cli {
             }
         }
 
-        Self::check_for_missing_required_args(&template_args, positional_idx, false)?;
+        Self::check_for_missing_required_args(&template_args, positional_idx, None)?;
         Self::check_for_missing_required_opts(&parsed_opts, &template_opts)?;
 
         Ok((parsed_args, parsed_opts))
@@ -184,7 +204,7 @@ impl Cli {
     fn check_for_missing_required_args(
         template_args: &Vec<CliArgument>,
         positional_idx: usize,
-        are_opt_args: bool,
+        opt_idx: Option<usize>,
     ) -> Result<(), ParseError> {
         if positional_idx < template_args.iter().filter(|arg| !arg.optional).count() {
             let last_required_arg_idx = template_args.len()
@@ -199,8 +219,11 @@ impl Cli {
                 .filter(|arg| !arg.optional)
                 .map(|arg| arg.name.clone())
                 .collect::<Vec<String>>();
-            if are_opt_args {
-                return Err(ParseError::MissingRequiredArgumentsForOption(missing_args));
+            if let Some(opt_idx) = opt_idx {
+                return Err(ParseError::MissingRequiredArgumentsForOption(
+                    opt_idx,
+                    missing_args,
+                ));
             } else {
                 return Err(ParseError::MissingRequiredArguments(missing_args));
             }

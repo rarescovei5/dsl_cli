@@ -6,7 +6,7 @@ fn main() {
         version "0.1.0",
         description "A simple CLI for string utilities",
 
-        cmd split "Split a string into words" {
+        cmd split "Split a string by a separator" {
             arg string "The string to split": String,
             opt "-s, --separator" "The separator to use" {
                 arg string: String,

@@ -126,7 +126,7 @@ pub fn generate_match_return(dsl: &CliDsl) -> TokenStream2 {
         let __env_args: Vec<String> = ::std::env::args().skip(1).collect();
         let __command_name = __env_args.first().map(|s| s.as_str()).unwrap_or("").to_string();
 
-        let (__parsed_args, __parsed_opts) = __cli.parse(__command_name.clone(), __env_args);
+        let (__parsed_args, __parsed_opts) = __cli.parse(__env_args);
 
         match __command_name.as_str() {
             #(#match_arms),*

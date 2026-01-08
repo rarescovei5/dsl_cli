@@ -7,12 +7,8 @@ type ParsedArgs = HashMap<String, Box<dyn Any>>;
 type ParsedOpts = HashMap<String, Box<dyn Any>>;
 
 impl Cli {
-    pub fn parse(
-        &mut self,
-        command_name: String,
-        env_args: Vec<String>,
-    ) -> (ParsedArgs, ParsedOpts) {
-        let result = self.try_parse(command_name, env_args);
+    pub fn parse(&mut self, env_args: Vec<String>) -> (ParsedArgs, ParsedOpts) {
+        let result = self.try_parse(env_args);
 
         match result {
             Ok((parsed_args, parsed_opts)) => (parsed_args, parsed_opts),
@@ -22,22 +18,39 @@ impl Cli {
             }
         }
     }
-    fn try_parse(
-        &mut self,
-        command_name: String,
-        env_args: Vec<String>,
-    ) -> Result<(ParsedArgs, ParsedOpts), ParseError> {
-        let command_name = if command_name.is_empty() {
-            "cli".to_owned()
+    fn try_parse(&mut self, env_args: Vec<String>) -> Result<(ParsedArgs, ParsedOpts), ParseError> {
+        let potential_cmd_name = env_args.first().map(|s| s.as_str()).unwrap_or("cli");
+
+        if potential_cmd_name == "help" {
+            let second = env_args.get(1).map(|s| s.to_owned());
+
+            if let Some(second) = second {
+                if let None = self.commands.iter().find(|cmd| cmd.name == second) {
+                    return Err(ParseError::InvalidCommand(second.to_string()));
+                }
+
+                self.show_help(second.to_string());
+            } else {
+                self.show_help("cli".to_owned());
+            }
+            std::process::exit(0);
+        }
+
+        let possible_command_names = self
+            .commands
+            .iter()
+            .map(|cmd| cmd.name.as_str())
+            .collect::<Vec<&str>>();
+
+        let command_def = if possible_command_names.contains(&potential_cmd_name) {
+            self.commands
+                .iter()
+                .find(|cmd| cmd.name == potential_cmd_name)
+                .unwrap()
+        } else if possible_command_names.contains(&"cli") {
+            &self.commands.iter().find(|cmd| cmd.name == "cli").unwrap()
         } else {
-            command_name
-        };
-
-        self.used_command = Some(command_name.clone());
-
-        let command_def = match self.commands.iter().find(|cmd| cmd.name == command_name) {
-            Some(cmd) => cmd,
-            None => return Err(ParseError::InvalidCommand(command_name)),
+            return Err(ParseError::InvalidCommand(potential_cmd_name.to_string()));
         };
 
         let (parsed_args, parsed_opts) = Self::parse_args(

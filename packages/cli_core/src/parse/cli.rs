@@ -56,7 +56,6 @@ impl Cli {
                 .find(|cmd| cmd.name == potential_cmd_name)
                 .unwrap()
         } else if possible_command_names.contains(&"cli") {
-            env_args.next();
             self.used_command = Some("cli".to_owned());
             &self.commands.iter().find(|cmd| cmd.name == "cli").unwrap()
         } else {
@@ -185,6 +184,16 @@ impl Cli {
         let mut missing_required_opts = Vec::new();
 
         for opt in required_opts {
+            let flags = format!(
+                "({})",
+                opt.flags
+                    .values()
+                    .iter()
+                    .filter_map(|f| f.as_ref().map(|s| s.to_string()))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            );
+
             match opt.args.len() {
                 0 => {
                     if parsed_opts
@@ -193,7 +202,7 @@ impl Cli {
                         .downcast_ref::<bool>()
                         .is_none()
                     {
-                        missing_required_opts.push(opt.name.clone());
+                        missing_required_opts.push(flags);
                     }
                 }
                 1 => {
@@ -203,7 +212,7 @@ impl Cli {
                         .downcast_ref::<String>()
                         .is_none()
                     {
-                        missing_required_opts.push(opt.name.clone());
+                        missing_required_opts.push(flags);
                     }
                 }
                 _ => {
@@ -213,7 +222,7 @@ impl Cli {
                         .downcast_ref::<HashMap<String, Box<dyn Any>>>()
                         .is_none()
                     {
-                        missing_required_opts.push(opt.name.clone());
+                        missing_required_opts.push(flags);
                     }
                 }
             };
@@ -231,17 +240,10 @@ impl Cli {
         opt_idx: Option<usize>,
     ) -> Result<(), ParseError> {
         if positional_idx < template_args.iter().filter(|arg| !arg.optional).count() {
-            let last_required_arg_idx = template_args.len()
-                - template_args
-                    .iter()
-                    .rev()
-                    .position(|arg| !arg.optional)
-                    .unwrap()
-                - 1;
-            let missing_args = template_args[positional_idx..last_required_arg_idx]
+            let missing_args = template_args[positional_idx..]
                 .iter()
                 .filter(|arg| !arg.optional)
-                .map(|arg| arg.name.clone())
+                .map(|arg| arg.reconstruct_name())
                 .collect::<Vec<String>>();
             if let Some(opt_idx) = opt_idx {
                 return Err(ParseError::MissingRequiredArgumentsForOption(

@@ -50,6 +50,11 @@ impl Cli {
 
                 usage_string.push_str(&self.executable_name);
 
+                if command_name != "cli" {
+                    usage_string.push_str(" ");
+                    usage_string.push_str(&command_name);
+                }
+
                 if !args_info.is_empty() {
                     let args_string = " ".to_owned()
                         + &args_info

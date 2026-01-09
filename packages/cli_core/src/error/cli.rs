@@ -6,6 +6,7 @@ use crate::{
 
 impl Cli {
     pub fn handle_parse_error(&self, e: ParseError) {
+        println!();
         match e {
             ParseError::InvalidCommand(command) => {
                 eprintln!("error: Invalid command: {}\n", command);
@@ -19,7 +20,7 @@ impl Cli {
                         .join(", ")
                 );
                 println!(
-                    "tip: For more help on commands run: {} help",
+                    "( For more help on commands run: {} help )",
                     self.executable_name
                 );
             }
@@ -47,12 +48,12 @@ impl Cli {
                         .join(", ")
                 );
                 println!(
-                    "tip: For more help on arguments run: {} help {}",
+                    "( For more help on arguments run: {} help {} )",
                     self.executable_name, used_command
                 );
             }
             ParseError::MissingRequiredArguments(args) => {
-                eprintln!("error: Missing required arguments: {:?}\n", args);
+                eprintln!("error: Missing required arguments: {:?}\n", args.join(" "));
 
                 let used_command = self.used_command.as_ref().unwrap();
                 let command_def = self
@@ -72,12 +73,12 @@ impl Cli {
                         .join(", ")
                 );
                 println!(
-                    "tip: For more help on required arguments run: {} help {}",
+                    "( For more help on required arguments run: {} help {} )",
                     self.executable_name, used_command
                 );
             }
             ParseError::MissingRequiredOptions(opts) => {
-                eprintln!("error: Missing required options: {:?}\n", opts);
+                eprintln!("error: Missing required options: {:?}\n", opts.join(", "));
 
                 let used_command = self.used_command.as_ref().unwrap();
                 let command_def = self
@@ -97,12 +98,15 @@ impl Cli {
                         .join(", ")
                 );
                 println!(
-                    "tip: For more help on options run: {} help {}",
+                    "( For more help on options run: {} help {} )",
                     self.executable_name, used_command
                 );
             }
             ParseError::MissingRequiredArgumentsForOption(idx, args) => {
-                eprintln!("error: Missing required arguments for option: {:?}\n", args);
+                eprintln!(
+                    "error: Missing required arguments for option: {:?}\n",
+                    args.join(" ")
+                );
 
                 let used_command = self.used_command.as_ref().unwrap();
                 let command_def = self
@@ -125,7 +129,7 @@ impl Cli {
                         .join(" ")
                 );
                 println!(
-                    "tip: For more help on option arguments run: {} help {}",
+                    "( For more help on option arguments run: {} help {} )",
                     self.executable_name, used_command
                 );
             }
@@ -139,27 +143,40 @@ impl Cli {
                     .find(|cmd| &cmd.name == used_command)
                     .unwrap();
 
-                let mut option_flags = Vec::new();
+                let mut long_flags = Vec::new();
+                let mut short_flags = Vec::new();
 
                 for opt in command_def.options.iter() {
                     match &opt.flags {
-                        CliOptionFlags::Short(_) => {}
-                        CliOptionFlags::Long(s) => {
-                            option_flags.push(format!("--{}", s));
+                        CliOptionFlags::Short(s) => {
+                            short_flags.push(format!("-{}", s));
                         }
-                        CliOptionFlags::ShortAndLong(_, s) => {
-                            option_flags.push(format!("--{}", s));
+                        CliOptionFlags::Long(l) => {
+                            long_flags.push(format!("--{}", l));
+                        }
+                        CliOptionFlags::ShortAndLong(s, l) => {
+                            short_flags.push(format!("-{}", s));
+                            long_flags.push(format!("--{}", l));
                         }
                     }
                 }
 
-                println!("tip: {}", suggest_similar(flag, option_flags));
+                if flag.starts_with("--") {
+                    println!("tip: {}", suggest_similar(flag, long_flags));
+                } else {
+                    println!(
+                        "tip: Available short flags for `{}` are: {}",
+                        used_command,
+                        short_flags.join(", ")
+                    );
+                }
                 println!(
-                    "tip: For more help on options run: {} help {}",
+                    "( For more help on options run: `{} help {}` )",
                     self.executable_name,
                     self.used_command.as_ref().unwrap()
                 );
             }
         }
+        println!();
     }
 }

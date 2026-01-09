@@ -7,9 +7,9 @@ fn main() {
         description "A simple CLI for string utilities",
 
         cmd split "Split a string by a separator" {
-            arg string "The string to split": String,
-            opt "-s, --separator" "The separator to use" {
-                arg string: String,
+            arg string "The string to split",
+            req_opt "-s, --separator" "The separator to use" {
+                arg string,
             },
         },
     );

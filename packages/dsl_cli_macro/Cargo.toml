@@ -2,7 +2,7 @@
 name = "dsl_cli_macro"
 description = "Proc-macro implementation for the dsl_cli CLI DSL."
 version = "0.1.0"
-categories = ["command-line-interfaces"]
+categories = ["command-line-interface"]
 keywords = ["cli", "proc-macro", "dsl"]
 readme = "./README.md"
 edition = {workspace = true}

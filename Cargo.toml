@@ -1,20 +1,38 @@
 [package]
 name = "dsl_cli"
+description = "A small proc-macro DSL for defining command-line interfaces."
+categories = ["command-line-interfaces"]
+keywords = [
+  "argument",
+  "cli",
+  "arg",
+  "parser",
+  "parse"
+]
 version = "0.1.0"
-edition = "2024"
+edition = {workspace = true}
+license = {workspace = true}
+repository = {workspace = true}
+readme = {workspace = true}
 
 [lib]
 
 [workspace]
 resolver = "2"
 members = [
-    "packages/cli_core",
-    "packages/cli_macro"
+    "packages/dsl_cli_core",
+    "packages/dsl_cli_macro"
 ]
 
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/rarescovei5/dsl_cli"
+readme = "README.md"
+
 [dependencies]
-cli_macro = { path = "packages/cli_macro" }
-cli_core = { path = "packages/cli_core" }
+dsl_cli_macro = { version = "0.1.0", path = "packages/dsl_cli_macro" }
+dsl_cli_core = { version = "0.1.0", path = "packages/dsl_cli_core" }
 
 [[example]]
 name = "string_utils"

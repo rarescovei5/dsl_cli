@@ -3,24 +3,24 @@
 version = 4
 
 [[package]]
-name = "cli_core"
+name = "dsl_cli"
+version = "0.1.0"
+dependencies = [
+ "dsl_cli_core",
+ "dsl_cli_macro",
+]
+
+[[package]]
+name = "dsl_cli_core"
 version = "0.1.0"
 
 [[package]]
-name = "cli_macro"
+name = "dsl_cli_macro"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "dsl_cli"
-version = "0.1.0"
-dependencies = [
- "cli_core",
- "cli_macro",
 ]
 
 [[package]]

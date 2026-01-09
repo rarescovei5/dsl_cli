@@ -1,0 +1,18 @@
+[package]
+name = "dsl_cli_macro"
+description = "Proc-macro implementation for the dsl_cli CLI DSL."
+version = "0.1.0"
+categories = ["command-line-interfaces"]
+keywords = ["cli", "proc-macro", "dsl"]
+edition = {workspace = true}
+license = {workspace = true}
+repository = {workspace = true}
+readme = {workspace = true}
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", features = ["full", "parsing", "extra-traits"] }

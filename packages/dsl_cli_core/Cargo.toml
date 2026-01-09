@@ -1,0 +1,10 @@
+[package]
+name = "dsl_cli_core"
+description = "Runtime support crate for dsl_cli (argument/option parsing + help/error formatting)."
+version = "0.1.0"
+categories = ["command-line-interfaces"]
+keywords = ["cli", "argument", "parser"]
+edition = {workspace = true}
+license = {workspace = true}
+repository = {workspace = true}
+readme = {workspace = true}

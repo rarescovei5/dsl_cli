@@ -1,2 +1,2 @@
-pub use cli_core;
-pub use cli_macro::cli;
+pub use dsl_cli_core;
+pub use dsl_cli_macro::cli;

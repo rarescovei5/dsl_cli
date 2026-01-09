@@ -28,7 +28,13 @@ Add the dependency in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-dsl_cli = { path = "../dsl_cli" }
+dsl_cli = "0.1.0"
+```
+
+Or using cargo:
+
+```bash
+cargo add dsl_cli
 ```
 
 Then define your CLI using the `cli!` macro:

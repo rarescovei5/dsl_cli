@@ -4,7 +4,7 @@ description = "Runtime support crate for dsl_cli (argument/option parsing + help
 version = "0.1.0"
 categories = ["command-line-interfaces"]
 keywords = ["cli", "argument", "parser"]
+readme = "./README.md"
 edition = {workspace = true}
 license = {workspace = true}
 repository = {workspace = true}
-readme = {workspace = true}

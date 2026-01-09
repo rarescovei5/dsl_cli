@@ -10,10 +10,10 @@ keywords = [
   "parse"
 ]
 version = "0.1.0"
+readme = "./README.md"
 edition = {workspace = true}
 license = {workspace = true}
 repository = {workspace = true}
-readme = {workspace = true}
 
 [lib]
 
@@ -28,7 +28,6 @@ members = [
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/rarescovei5/dsl_cli"
-readme = "README.md"
 
 [dependencies]
 dsl_cli_macro = { version = "0.1.0", path = "packages/dsl_cli_macro" }

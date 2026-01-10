@@ -1,9 +1,10 @@
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
+use syn::parse_quote;
 
 use crate::{
     Argument, CliDsl, CliOption, Command, generate_args_struct_name, generate_opts_struct_name,
-    get_effective_type, parse_flags, to_pascal_case,
+    get_effective_type, is_optional_type, parse_flags, to_pascal_case,
 };
 
 pub fn generate_args_struct(args: &Vec<Argument>, pascal_prefix: &str) -> TokenStream2 {
@@ -40,18 +41,57 @@ pub fn generate_opts_struct(opts: &Vec<CliOption>, pascal_prefix: &str) -> Token
             0 => fields.push(quote! { pub #field_name: bool }),
             1 => {
                 let arg = &opt.arguments[0];
-                let field_type = get_effective_type(arg);
+                // Option fields should be optional if the option itself is optional,
+                // regardless of whether the argument type is non-Option.
+                //
+                // Defaults always produce a concrete value, so unwrap Option<T> when a default exists.
+                let field_type = if arg.default.is_some() {
+                    get_effective_type(arg)
+                } else if opt.required {
+                    arg.ty.clone()
+                } else if is_optional_type(&arg.ty) {
+                    arg.ty.clone()
+                } else {
+                    let ty = arg.ty.clone();
+                    parse_quote!(Option<#ty>)
+                };
+
                 fields.push(quote! { pub #field_name: #field_type });
             }
             _ => {
                 let pascal_prefix = format!("{}{}", pascal_prefix, to_pascal_case(&opt_name));
-                let nested_struct = generate_args_struct(&opt.arguments, &pascal_prefix);
+                let nested_struct_name =
+                    format_ident!("{}", generate_args_struct_name(&pascal_prefix));
+
+                let nested_fields: Vec<TokenStream2> = opt
+                    .arguments
+                    .iter()
+                    .map(|arg| {
+                        let field_name = &arg.name;
+                        let field_type = if arg.default.is_some() {
+                            get_effective_type(arg)
+                        } else if opt.required {
+                            arg.ty.clone()
+                        } else if is_optional_type(&arg.ty) {
+                            arg.ty.clone()
+                        } else {
+                            let ty = arg.ty.clone();
+                            parse_quote!(Option<#ty>)
+                        };
+                        quote! { pub #field_name: #field_type }
+                    })
+                    .collect();
+
+                let nested_struct = quote! {
+                    #[derive(Debug)]
+                    struct #nested_struct_name {
+                        #(#nested_fields),*
+                    }
+                };
 
                 nested_structs.push(nested_struct);
 
-                let field_type = generate_args_struct_name(&pascal_prefix);
-
-                fields.push(quote! { pub #field_name: #field_type });
+                fields.push(quote! { pub #field_name: #nested_struct_name });
             }
         }
     }

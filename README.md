@@ -5,19 +5,19 @@
 - [Getting started](#getting-started)
 - [Metadata](#metadata)
 - [Commands](#commands)
-    - [Defining a Command](#defining-a-command)
-    - [The cli command](#the-cli-command)
+  - [Defining a Command](#defining-a-command)
+  - [The cli command](#the-cli-command)
 - [Arguments](#arguments)
-    - [Defining an Argument](#defining-an-argument)
-    - [Optional arguments](#optional-arguments)
-    - [Variadic arguments](#variadic-arguments)
+  - [Defining an Argument](#defining-an-argument)
+  - [Optional arguments](#optional-arguments)
+  - [Variadic arguments](#variadic-arguments)
 - [Options](#options)
-    - [Defining an Option](#defining-an-option)
-    - [Required options](#required-options)
-    - [Option arguments](#option-arguments)
+  - [Defining an Option](#defining-an-option)
+  - [Required options](#required-options)
+  - [Option arguments](#option-arguments)
 - [Auto Help](#auto-help)
-    - [Help Message](#help-message)
-    - [Error Handling](#error-handling)
+  - [Help Message](#help-message)
+  - [Error Handling](#error-handling)
 - [License](#license)
 
 ---
@@ -71,6 +71,7 @@ fn main() {
 ```
 
 Notes:
+
 - `help` is a built-in command: run `<exe> help` or `<exe> help <command>` (trying to override won't lead to anything).
 - `cli` is a special command [see here](#the-cli-command).
 
@@ -88,7 +89,7 @@ Notes:
 
 #### Defining a Command
 
-- We define a command by using the `cmd` keyword. 
+- We define a command by using the `cmd` keyword.
 - It is required for each command to have a name as this will be used when identifying which command was used.
 - A command can have a description which is displayed below the usage of the command in the help message.
 
@@ -123,7 +124,12 @@ arg <name> ["description"] [: <type>] [= <default>],
 
 #### Optional arguments
 
-We can make an argument optional by supplying an `Option<T>` type. In this case, we can also provide a default value for the argument by using the `=` character. Defaults are only allowed for `Option<...>` types; if provided, the generated field type becomes `T` (not `Option<T>`).
+We can make an argument optional by supplying an `Option<T>` type. In this case, we can also provide a default value for the argument by using the `=` character. Defaults are only allowed for arguments that can be absent; if provided, the generated field type becomes `T` (not `Option<T>`).
+
+Absence is dictated by the type and the context in which the argument is defined. For example:
+
+- If the argument's type is `Option<T>`, it can be absent.
+- For an argument defined inside an **optional option**, it doesn't matter wether the argument is optional or required, the resulting type will be `Option<T>`.
 
 #### Variadic arguments
 
@@ -167,6 +173,6 @@ Whenever the CLI encounters an error, it will display what the user did wrong, h
 
 ---
 
-## License 
+## License
 
 MIT License - Copyright (c) 2026 [Covei Rares](https://github.com/rarescovei5)

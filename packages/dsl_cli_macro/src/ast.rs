@@ -1,10 +1,11 @@
 use proc_macro2::TokenTree;
-use quote::quote;
 use syn::{
     Expr, Ident, LitStr, Token, Type, braced,
     parse::{Parse, ParseStream},
     spanned::Spanned,
 };
+
+use crate::utils::is_optional_type;
 
 pub struct CliDsl {
     pub(crate) name: LitStr,
@@ -98,7 +99,7 @@ impl Parse for Command {
             let keyword: Ident = content.parse()?;
             match keyword.to_string().as_str() {
                 "arg" => {
-                    arguments.push(parse_argument(&content, true)?);
+                    arguments.push(parse_argument(&content, true, true)?);
                 }
                 "opt" => {
                     options.push(parse_option(&content, false)?);
@@ -127,7 +128,11 @@ impl Parse for Command {
     }
 }
 
-fn parse_argument(input: ParseStream, is_positional: bool) -> syn::Result<Argument> {
+fn parse_argument(
+    input: ParseStream,
+    is_positional: bool,
+    is_ctx_required: bool,
+) -> syn::Result<Argument> {
     // arg <name> ["description"] [: type] [= <default>],
     let name: Ident = input.parse()?;
 
@@ -158,16 +163,16 @@ fn parse_argument(input: ParseStream, is_positional: bool) -> syn::Result<Argume
             format!("expected ':', got {}", unexpected),
         ));
     };
-    let ty_str = quote!(#ty).to_string();
+    let ty_is_option = is_optional_type(&ty);
 
     // Optional default value
     let default = if input.peek(Token![=]) {
         let asignment = input.parse::<Token![=]>()?;
 
-        if !ty_str.contains("Option") {
+        if !ty_is_option && is_ctx_required {
             return Err(syn::Error::new(
                 asignment.span(),
-                "Redundant default value for non-optional type",
+                "Default values are only allowed for *Option<T>* types or for arguments *inside optional options*.",
             ));
         }
 
@@ -206,7 +211,7 @@ fn parse_option(input: ParseStream, required: bool) -> syn::Result<CliOption> {
         while !content.is_empty() {
             let keyword: Ident = content.parse()?;
             if keyword == "arg" {
-                args.push(parse_argument(&content, false)?);
+                args.push(parse_argument(&content, false, required)?);
             } else {
                 return Err(syn::Error::new(
                     keyword.span(),

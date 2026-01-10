@@ -97,7 +97,7 @@ impl Cli {
 
                 // Option has no arguments = flag-only option
                 if opt_def.args.is_empty() {
-                    parsed_opts.insert(opt_def.name.clone(), Box::new("true".to_string()));
+                    parsed_opts.insert(opt_def.name.clone(), Box::new(true));
                     continue;
                 }
 
@@ -206,13 +206,25 @@ impl Cli {
                     }
                 }
                 1 => {
-                    if parsed_opts
-                        .get(&opt.name.clone())
-                        .unwrap()
-                        .downcast_ref::<String>()
-                        .is_none()
-                    {
-                        missing_required_opts.push(flags);
+                    let arg_def = &opt.args[0];
+                    if arg_def.variadic {
+                        if parsed_opts
+                            .get(&opt.name.clone())
+                            .unwrap()
+                            .downcast_ref::<Vec<String>>()
+                            .is_none()
+                        {
+                            missing_required_opts.push(flags);
+                        }
+                    } else {
+                        if parsed_opts
+                            .get(&opt.name.clone())
+                            .unwrap()
+                            .downcast_ref::<String>()
+                            .is_none()
+                        {
+                            missing_required_opts.push(flags);
+                        }
                     }
                 }
                 _ => {
@@ -278,24 +290,30 @@ impl Cli {
     fn initialize_parsed_opts(template_opts: &Vec<CliOption>) -> ParsedOpts {
         let mut parsed_opts: ParsedOpts = HashMap::new();
         for opt in template_opts {
-            match opt.args.len() < 2 {
-                true => {
-                    parsed_opts.insert(opt.name.clone(), Box::new(None::<String>));
+            match opt.args.len() {
+                0 => {
+                    parsed_opts.insert(opt.name.clone(), Box::new(None::<bool>));
                 }
-                false => {
+                1 => {
+                    let arg_def = &opt.args[0];
+                    if arg_def.variadic {
+                        parsed_opts.insert(opt.name.clone(), Box::new(None::<Vec<String>>));
+                    } else {
+                        parsed_opts.insert(opt.name.clone(), Box::new(None::<String>));
+                    }
+                }
+                _ => {
                     if opt.optional {
                         let parsed_opt_args = Self::initialize_parsed_args(&opt.args);
                         parsed_opts.insert(opt.name.clone(), Box::new(parsed_opt_args));
                     } else {
-                        // We don't initialize the parsed args,
-                        // since we need to check if they are missing later
                         parsed_opts.insert(
                             opt.name.clone(),
                             Box::new(None::<HashMap<String, Box<dyn Any>>>),
                         );
                     }
                 }
-            };
+            }
         }
         parsed_opts
     }

@@ -9,7 +9,7 @@ fn main() {
         cmd split "Split a string by a separator" {
             arg string "The string to split",
             req_opt "-s, --separator" "The separator to use" {
-                arg string,
+                arg string
             },
         },
     );

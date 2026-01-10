@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "dsl_cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "dsl_cli_core",
  "dsl_cli_macro",
@@ -12,11 +12,11 @@ dependencies = [
 
 [[package]]
 name = "dsl_cli_core"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "dsl_cli_macro"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",

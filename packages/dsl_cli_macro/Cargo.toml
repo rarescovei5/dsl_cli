@@ -1,7 +1,7 @@
 [package]
 name = "dsl_cli_macro"
 description = "Proc-macro implementation for the dsl_cli CLI DSL."
-version = "0.1.0"
+version = "0.2.0"
 categories = ["command-line-interface"]
 keywords = ["cli", "proc-macro", "dsl"]
 readme = "./README.md"

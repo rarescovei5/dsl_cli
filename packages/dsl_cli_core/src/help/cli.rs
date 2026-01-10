@@ -74,35 +74,21 @@ impl Cli {
             None => {}
         }
         // Display Description
-        if command_name != "cli" {
-            println!();
-            let cmd_def = cmd_def.unwrap();
+        match cmd_def {
+            Some(cmd_def) => {
+                let description = &cmd_def.description;
 
-            let description = &cmd_def.description;
-
-            if let Some(description) = description {
-                println!("{}", description)
-            } else {
-                println!("No description available")
+                if let Some(description) = description {
+                    println!("{}", description)
+                } else {
+                    println!("No description available")
+                }
             }
-        } else {
-            println!();
-            println!("{}", self.description);
-        }
-        // Display Commands
-        if !cmds_info.is_empty() {
-            println!();
-            println!("Commands:");
-            for (name, description) in cmds_info {
-                let width = name.len();
-                let padding = " ".repeat(max_width - width);
-                println!("  {}{}{}", name, padding, description);
-            }
+            None => {}
         }
         // Display Arguments
         if !args_info.is_empty() {
-            println!();
-            println!("Arguments:");
+            println!("\nArguments:");
             for (name, description) in args_info {
                 let width = name.len();
                 let padding = " ".repeat(max_width - width);
@@ -111,13 +97,25 @@ impl Cli {
         }
         // Display Options
         if !opts_info.is_empty() {
-            println!();
-            println!("Options:");
+            println!("\nOptions:");
             for (name, description) in opts_info {
                 let width = name.len();
                 let padding = " ".repeat(max_width - width);
                 println!("  {}{}{}", name, padding, description);
             }
+        }
+        // Display Commands
+        if !cmds_info.is_empty() {
+            println!("\nCommands:");
+            for (name, description) in cmds_info {
+                let width = name.len();
+                let padding = " ".repeat(max_width - width);
+                println!("  {}{}{}", name, padding, description);
+            }
+            println!(
+                "See '{} help <command>' for more information on a specific command.",
+                self.executable_name
+            );
         }
         println!();
     }

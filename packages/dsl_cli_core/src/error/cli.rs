@@ -6,7 +6,6 @@ use crate::{
 
 impl Cli {
     pub fn handle_parse_error(&self, e: ParseError) {
-        println!();
         match e {
             ParseError::InvalidCommand(command) => {
                 eprintln!("error: Invalid command: {}\n", command);

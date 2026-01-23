@@ -23,6 +23,10 @@ impl Cli {
                 .iter()
                 .map(|cmd| cmd.info())
                 .collect::<Vec<(String, String)>>();
+            cmds_info.push((
+                String::from("help [command]"),
+                String::from("Show help for a command"),
+            ));
         }
 
         let args_max_width = args_info
@@ -112,10 +116,6 @@ impl Cli {
                 let padding = " ".repeat(max_width - width);
                 println!("  {}{}{}", name, padding, description);
             }
-            println!(
-                "See '{} help <command>' for more information on a specific command.",
-                self.executable_name
-            );
         }
         println!();
     }

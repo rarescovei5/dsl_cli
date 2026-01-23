@@ -21,7 +21,7 @@ pub fn generate_args_struct(args: &Vec<Argument>, pascal_prefix: &str) -> TokenS
 
     quote! {
         #[derive(Debug)]
-        struct #struct_name {
+        pub struct #struct_name {
             #(#fields),*
         }
     }
@@ -84,7 +84,7 @@ pub fn generate_opts_struct(opts: &Vec<CliOption>, pascal_prefix: &str) -> Token
 
                 let nested_struct = quote! {
                     #[derive(Debug)]
-                    struct #nested_struct_name {
+                    pub struct #nested_struct_name {
                         #(#nested_fields),*
                     }
                 };
@@ -100,7 +100,7 @@ pub fn generate_opts_struct(opts: &Vec<CliOption>, pascal_prefix: &str) -> Token
         #(#nested_structs)*
 
         #[derive(Debug)]
-        struct #struct_name {
+        pub struct #struct_name {
             #(#fields),*
         }
     }
@@ -154,16 +154,15 @@ pub fn generate_match_return(dsl: &CliDsl) -> TokenStream2 {
     if dsl.commands.iter().any(|cmd| cmd.name.to_string() == "cli") {
         match_arms.push(quote! {
             _ => {
-                Command::Cli(
+                return Command::Cli(
                     CliArgs::from_parsed(__parsed_args),
                     CliOpts::from_parsed(__parsed_opts)
-                )
+                );
             }
         });
     }
 
     quote! {
-        let __env_args: Vec<String> = ::std::env::args().skip(1).collect();
         let __command_name = __env_args.first().map(|s| s.as_str()).unwrap_or("").to_string();
 
         let (__parsed_args, __parsed_opts) = __cli.parse(__env_args);

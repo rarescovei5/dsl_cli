@@ -9,7 +9,7 @@ keywords = [
   "parser",
   "parse"
 ]
-version = "0.2.0"
+version = "0.3.0"
 readme = "./README.md"
 edition = {workspace = true}
 license = {workspace = true}
@@ -30,8 +30,8 @@ license = "MIT"
 repository = "https://github.com/rarescovei5/dsl_cli"
 
 [dependencies]
-dsl_cli_macro = { version = "0.2.0", path = "packages/dsl_cli_macro" }
-dsl_cli_core = { version = "0.2.0", path = "packages/dsl_cli_core" }
+dsl_cli_macro = { version = "0.3.0", path = "packages/dsl_cli_macro" }
+dsl_cli_core = { version = "0.3.0", path = "packages/dsl_cli_core" }
 
 [[example]]
 name = "string_utils"

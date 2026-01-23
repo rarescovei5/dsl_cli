@@ -61,23 +61,25 @@ pub fn cli(input: TokenStream) -> TokenStream {
         #(#args_structs)*
         #(#opts_structs)*
 
+
         // Generated Commands enum
-        enum Command {
+        pub enum Command {
             #(#command_fields),*
         }
 
-        let parsed = {
+        #[allow(non_local_definitions)]
+        pub fn parse_env(__env_args: Vec<String>) -> Command {
+            // CLI setup
+            #cli_setup
+
             // FromParsed implementations
             use dsl_cli::dsl_cli_core::FromParsed;
             #(#args_from_parsed)*
             #(#opts_from_parsed)*
 
-            // CLI setup
-            #cli_setup
-
             // Command matching and parsing
             #match_return
-        };
+        }
     };
 
     output.into()

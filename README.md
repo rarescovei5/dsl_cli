@@ -28,7 +28,7 @@ Add the dependency in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-dsl_cli = "0.1.0"
+dsl_cli = "0.3.0"
 ```
 
 Or using cargo:
@@ -42,19 +42,22 @@ Then define your CLI using the `cli!` macro:
 ```rust
 use dsl_cli::cli;
 
-fn main() {
-    cli!(
-        name "string_utils",
-        version "0.1.0",
-        description "A simple CLI for string utilities",
+// The macro expands to items (types + functions), so it can be used at module scope.
+cli! {
+    name "string_utils",
+    version "0.1.0",
+    description "A simple CLI for string utilities",
 
-        cmd split "Split a string by a separator" {
-            arg string "The string to split",
-            req_opt "-s, --separator" "The separator to use" {
-                arg string,
-            },
+    cmd split "Split a string by a separator" {
+        arg string "The string to split",
+        req_opt "-s, --separator" "The separator to use" {
+            arg string
         },
-    );
+    },
+}
+
+fn main() {
+    let parsed = parse_env(std::env::args().skip(1).collect());
 
     match parsed {
         Command::Split(args, opts) => {
@@ -74,6 +77,7 @@ Notes:
 
 - `help` is a built-in command: run `<exe> help` or `<exe> help <command>` (trying to override won't lead to anything).
 - `cli` is a special command [see here](#the-cli-command).
+- The macro generates `pub` items, so you can import them from other modules (e.g. `use crate::{Command, parse_env, SplitArgs, SplitOpts};`).
 
 ---
 

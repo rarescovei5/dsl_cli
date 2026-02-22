@@ -1,4 +1,4 @@
-use proc_macro2::TokenTree;
+use proc_macro2::{Span, TokenTree};
 use syn::{
     Expr, Ident, LitStr, Token, Type, braced,
     parse::{Parse, ParseStream},
@@ -19,6 +19,7 @@ pub struct Command {
     pub(crate) description: Option<LitStr>,
     pub(crate) arguments: Vec<Argument>,
     pub(crate) options: Vec<CliOption>,
+    pub(crate) span: Span,
 }
 
 pub struct Argument {
@@ -26,6 +27,7 @@ pub struct Argument {
     pub(crate) description: Option<LitStr>,
     pub(crate) ty: Type,
     pub(crate) default: Option<Expr>,
+    pub(crate) span: Span,
 }
 
 pub struct CliOption {
@@ -33,6 +35,7 @@ pub struct CliOption {
     pub(crate) description: Option<LitStr>,
     pub(crate) arguments: Vec<Argument>,
     pub(crate) required: bool,
+    pub(crate) span: Span,
 }
 
 // ----------------------------------------------------------------
@@ -97,15 +100,16 @@ impl Parse for Command {
 
         while !content.is_empty() {
             let keyword: Ident = content.parse()?;
+            let span = keyword.span();
             match keyword.to_string().as_str() {
                 "arg" => {
-                    arguments.push(parse_argument(&content, true, true)?);
+                    arguments.push(parse_argument(&content, true, true, span)?);
                 }
                 "opt" => {
-                    options.push(parse_option(&content, false)?);
+                    options.push(parse_option(&content, false, span)?);
                 }
                 "req_opt" => {
-                    options.push(parse_option(&content, true)?);
+                    options.push(parse_option(&content, true, span)?);
                 }
                 _ => {
                     return Err(syn::Error::new(
@@ -124,6 +128,7 @@ impl Parse for Command {
             description,
             arguments,
             options,
+            span: cmd_keyword.span()
         })
     }
 }
@@ -132,6 +137,7 @@ fn parse_argument(
     input: ParseStream,
     is_positional: bool,
     is_ctx_required: bool,
+    keyword_span: Span
 ) -> syn::Result<Argument> {
     // arg <name> ["description"] [: type] [= <default>],
     let name: Ident = input.parse()?;
@@ -189,10 +195,11 @@ fn parse_argument(
         description,
         ty,
         default,
+        span: keyword_span
     })
 }
 
-fn parse_option(input: ParseStream, required: bool) -> syn::Result<CliOption> {
+fn parse_option(input: ParseStream, required: bool, keyword_span: Span) -> syn::Result<CliOption> {
     // opt|req_opt "<flags>" ["description"] [{args}],
     let flags: LitStr = input.parse()?;
 
@@ -210,8 +217,9 @@ fn parse_option(input: ParseStream, required: bool) -> syn::Result<CliOption> {
         let mut args = Vec::new();
         while !content.is_empty() {
             let keyword: Ident = content.parse()?;
+            let span = keyword.span();
             if keyword == "arg" {
-                args.push(parse_argument(&content, false, required)?);
+                args.push(parse_argument(&content, false, required, span)?);
             } else {
                 return Err(syn::Error::new(
                     keyword.span(),
@@ -232,5 +240,6 @@ fn parse_option(input: ParseStream, required: bool) -> syn::Result<CliOption> {
         description,
         arguments,
         required,
+        span: keyword_span
     })
 }

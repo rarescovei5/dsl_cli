@@ -1,19 +1,19 @@
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
-use syn::parse_quote;
+use syn::{Ident, parse_quote};
 
 use crate::{
     Argument, CliDsl, CliOption, Command, generate_args_struct_name, generate_opts_struct_name,
     get_effective_type, is_optional_type, parse_flags, to_pascal_case,
 };
 
-pub fn generate_args_struct(args: &Vec<Argument>, pascal_prefix: &str) -> TokenStream2 {
-    let struct_name = format_ident!("{}", generate_args_struct_name(pascal_prefix));
+pub fn generate_args_struct(args: &Vec<Argument>, pascal_prefix: &str, span: Span) -> TokenStream2 {
+    let struct_name = Ident::new(&format!("{}", generate_args_struct_name(pascal_prefix)), span);
 
     let fields: Vec<TokenStream2> = args
         .iter()
         .map(|arg| {
-            let field_name = &arg.name;
+            let field_name = Ident::new(&arg.name.to_string(), arg.span);
             let field_type = get_effective_type(arg);
             quote! { pub #field_name: #field_type }
         })
@@ -27,15 +27,15 @@ pub fn generate_args_struct(args: &Vec<Argument>, pascal_prefix: &str) -> TokenS
     }
 }
 
-pub fn generate_opts_struct(opts: &Vec<CliOption>, pascal_prefix: &str) -> TokenStream2 {
-    let struct_name = format_ident!("{}", generate_opts_struct_name(pascal_prefix));
+pub fn generate_opts_struct(opts: &Vec<CliOption>, pascal_prefix: &str, span: Span) -> TokenStream2 {
+    let struct_name = Ident::new(&format!("{}", generate_opts_struct_name(pascal_prefix)), span);
 
     let mut nested_structs = Vec::new();
     let mut fields = Vec::new();
 
     for opt in opts {
         let (_, _, opt_name) = parse_flags(&opt.flags.value());
-        let field_name = format_ident!("{}", opt_name);
+        let field_name = Ident::new(&opt_name, opt.span);
 
         match opt.arguments.len() {
             0 => fields.push(quote! { pub #field_name: bool }),
@@ -61,13 +61,13 @@ pub fn generate_opts_struct(opts: &Vec<CliOption>, pascal_prefix: &str) -> Token
             _ => {
                 let pascal_prefix = format!("{}{}", pascal_prefix, to_pascal_case(&opt_name));
                 let nested_struct_name =
-                    format_ident!("{}", generate_args_struct_name(&pascal_prefix));
+                    Ident::new(&format!("{}", generate_args_struct_name(&pascal_prefix)), opt.span);
 
                 let nested_fields: Vec<TokenStream2> = opt
                     .arguments
                     .iter()
                     .map(|arg| {
-                        let field_name = &arg.name;
+                        let field_name = Ident::new(&arg.name.to_string(), arg.span);
                         let field_type = if arg.default.is_some() {
                             get_effective_type(arg)
                         } else if opt.required {

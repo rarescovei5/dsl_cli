@@ -28,7 +28,7 @@ Add the dependency in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-dsl_cli = "0.4.1"
+dsl_cli = "0.4.2"
 ```
 
 Or using cargo:

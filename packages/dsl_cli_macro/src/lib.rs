@@ -29,12 +29,12 @@ pub fn cli(input: TokenStream) -> TokenStream {
     let args_structs: Vec<TokenStream2> = dsl
         .commands
         .iter()
-        .map(|cmd| generate_args_struct(&cmd.arguments, &to_pascal_case(&cmd.name.to_string())))
+        .map(|cmd| generate_args_struct(&cmd.arguments, &to_pascal_case(&cmd.name.to_string()), cmd.span))
         .collect();
     let opts_structs: Vec<TokenStream2> = dsl
         .commands
         .iter()
-        .map(|cmd| generate_opts_struct(&cmd.options, &to_pascal_case(&cmd.name.to_string())))
+        .map(|cmd| generate_opts_struct(&cmd.options, &to_pascal_case(&cmd.name.to_string()), cmd.span))
         .collect();
 
     // Generate the enum for the commands
@@ -60,7 +60,6 @@ pub fn cli(input: TokenStream) -> TokenStream {
         // These structs are generated for each command so we can parse into them later
         #(#args_structs)*
         #(#opts_structs)*
-
 
         // Generated Commands enum
         pub enum Command {

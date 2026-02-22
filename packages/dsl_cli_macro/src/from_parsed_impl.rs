@@ -118,25 +118,12 @@ pub fn generate_from_parsed_impl_for_opts(cmd: &Command) -> TokenStream2 {
                     }
                 });
 
-                if !is_scope_optional {
-                    field_extractions.push(quote! {
-                        let #field_name: #nested_struct_name = {
-                            let val = __parsed.remove(#opt_name).unwrap();
-                            #nested_struct_name::from_parsed(val.as_args())
-                        };
-                    });
-                } else {
-                    field_extractions.push(quote! {
-                        let #field_name: #nested_struct_name = {
-                            let val = __parsed.remove(#opt_name).unwrap();
-                            if !val.is_none() {
-                                #nested_struct_name::from_parsed(val.as_args())
-                            } else {
-                                #nested_struct_name::default()
-                            }
-                        };
-                    });
-                }
+                field_extractions.push(quote! {
+                    let #field_name: #nested_struct_name = {
+                        let val = __parsed.remove(#opt_name).unwrap();
+                        #nested_struct_name::from_parsed(val.as_args())
+                    };
+                });
             }
         }
     }
@@ -162,16 +149,17 @@ fn generate_arg_extraction(
     arg: &Argument, 
     scope_optional: bool
 ) -> TokenStream2 {
+    let is_optional = scope_optional || is_optional_type(&arg.ty);
+    let is_variadic = is_variadic_type(&arg.ty);
+    let has_default = arg.default.is_some();
+
     let ty = get_effective_type(arg);
-    let field_type = if scope_optional {
+    let field_type = if scope_optional && !has_default  {
         syn::parse_quote!(Option<#ty>)
     } else {
         ty
     };
     
-    let is_optional = scope_optional || is_optional_type(&arg.ty);
-    let is_variadic = is_variadic_type(&arg.ty);
-    let has_default = arg.default.is_some();
 
     match (is_optional,is_variadic, has_default) {
         // T

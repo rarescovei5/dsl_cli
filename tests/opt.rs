@@ -25,7 +25,7 @@ mod optional {
 
             match parsed {
                 Command::FlagTest(_, opts) => {
-                    assert!(opts.verbose);
+                    assert_eq!(opts.verbose, true);
                 }
             }
         }
@@ -36,7 +36,7 @@ mod optional {
 
             match parsed {
                 Command::FlagTest(_, opts) => {
-                    assert!(!opts.verbose);
+                    assert_eq!(opts.verbose, false);
                 }
             }
         }
@@ -82,7 +82,7 @@ mod optional {
             description "Test CLI",
 
             cmd multi {
-                req_opt "--range" {
+                opt "--range" {
                     arg start: i32,
                     arg end: i32,
                 },
@@ -100,8 +100,8 @@ mod optional {
 
             match parsed {
                 Command::Multi(_, opts) => {
-                    assert_eq!(opts.range.start, 1);
-                    assert_eq!(opts.range.end, 5);
+                    assert_eq!(opts.range.start, Some(1));
+                    assert_eq!(opts.range.end, Some(5));
                 }
             }
         }

@@ -314,7 +314,11 @@ impl Cli {
     fn initialize_parsed_opts(template_opts: &Vec<CliOption>) -> ParsedOpts {
         let mut parsed_opts: ParsedOpts = HashMap::new();
         for opt in template_opts {
-            parsed_opts.insert(opt.name.clone(), ParsedOpt::None);
+            if opt.optional && opt.args.len() > 1 {
+                parsed_opts.insert(opt.name.clone(), ParsedOpt::Args(Self::initialize_parsed_args(&opt.args)));
+            } else {
+                parsed_opts.insert(opt.name.clone(), ParsedOpt::None);
+            }
         }
         parsed_opts
     }

@@ -122,7 +122,7 @@ pub fn generate_from_parsed_impl_for_opts(cmd: &Command) -> TokenStream2 {
                     field_extractions.push(quote! {
                         let #field_name: #nested_struct_name = {
                             let val = __parsed.remove(#opt_name).unwrap();
-                            #nested_struct_name::from_parsed(*val.as_args())
+                            #nested_struct_name::from_parsed(val.as_args())
                         };
                     });
                 } else {
@@ -130,7 +130,7 @@ pub fn generate_from_parsed_impl_for_opts(cmd: &Command) -> TokenStream2 {
                         let #field_name: #nested_struct_name = {
                             let val = __parsed.remove(#opt_name).unwrap();
                             if !val.is_none() {
-                                #nested_struct_name::from_parsed(*inner_map)
+                                #nested_struct_name::from_parsed(val.as_args())
                             } else {
                                 #nested_struct_name::default()
                             }
@@ -169,7 +169,7 @@ fn generate_arg_extraction(
         ty
     };
     
-    let is_optional = is_optional_type(&arg.ty);
+    let is_optional = scope_optional || is_optional_type(&arg.ty);
     let is_variadic = is_variadic_type(&arg.ty);
     let has_default = arg.default.is_some();
 
@@ -189,7 +189,7 @@ fn generate_arg_extraction(
                 let #field_name: #field_type = {
                     let val = __parsed.remove(#field_name_str).unwrap();
                     if !val.is_none() {
-                        Some(str_val.as_value().parse().unwrap())
+                        Some(val.as_value().parse().unwrap())
                     } else {
                         None
                     }
@@ -242,7 +242,7 @@ fn generate_arg_extraction(
                 let #field_name: #field_type = {
                     let val = __parsed.remove(#field_name_str).unwrap();
                     if !val.is_none() {
-                        str_val.as_value().parse().unwrap()
+                        val.as_value().parse().unwrap()
                     } else {
                         #default_val
                     }

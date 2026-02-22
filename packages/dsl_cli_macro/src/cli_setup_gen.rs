@@ -45,20 +45,37 @@ pub fn generate_opt_def(opt: &CliOption) -> TokenStream2 {
 
     let opt_arg_defs: Vec<TokenStream2> = opt.arguments.iter().map(generate_arg_def).collect();
 
-    quote! {
-        {
-            let mut __opt = dsl_cli::dsl_cli_core::CliOption::new(
-                #opt_name,
-                #flags_expr,
-                #opt_desc,
-                #optional,
-            );
+    if !opt_arg_defs.is_empty(){
+        quote! {
+            {
+                let mut __opt = dsl_cli::dsl_cli_core::CliOption::new(
+                    #opt_name,
+                    #flags_expr,
+                    #opt_desc,
+                    #optional,
+                );
 
-            __opt #(.add_argument(#opt_arg_defs))*;
+                __opt #(.add_argument(#opt_arg_defs))*;
 
-            __opt
+                __opt
+            }
+        }
+    } else {
+        quote! {
+            {
+                let mut __opt = dsl_cli::dsl_cli_core::CliOption::new(
+                    #opt_name,
+                    #flags_expr,
+                    #opt_desc,
+                    #optional,
+                );
+
+                __opt
+            }
         }
     }
+
+   
 }
 
 pub fn generate_cli_setup(dsl: &CliDsl) -> TokenStream2 {

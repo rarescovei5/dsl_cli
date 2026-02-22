@@ -1,7 +1,13 @@
 use std::{any::Any, collections::HashMap};
 
+use crate::parse::cli::{ParsedArgs, ParsedOpts};
+
 pub mod cli;
 
-pub trait FromParsed {
-    fn from_parsed(parsed: HashMap<String, Box<dyn Any>>) -> Self;
+pub trait FromParsedArgs {
+    fn from_parsed(parsed: ParsedArgs) -> Self;
+}
+
+pub trait FromParsedOpts {
+    fn from_parsed(parsed: ParsedOpts) -> Self;
 }

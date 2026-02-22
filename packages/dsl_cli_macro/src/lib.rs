@@ -73,7 +73,8 @@ pub fn cli(input: TokenStream) -> TokenStream {
             #cli_setup
 
             // FromParsed implementations
-            use dsl_cli::dsl_cli_core::FromParsed;
+            use dsl_cli::dsl_cli_core::{FromParsedArgs, FromParsedOpts};
+            
             #(#args_from_parsed)*
             #(#opts_from_parsed)*
 

@@ -1,10 +1,69 @@
 use std::{any::Any, collections::HashMap, iter::Peekable};
 
-use crate::{Cli, CliArgument, CliOption, FromParsed, error::ParseError};
+use crate::{Cli, CliArgument, CliOption, error::ParseError};
 
 // The Box<dyn Any> represents either None or a String
-type ParsedArgs = HashMap<String, Box<dyn Any>>;
-type ParsedOpts = HashMap<String, Box<dyn Any>>;
+pub enum ParsedArg {
+    None,
+    Value(String),
+    Variadic(Vec<String>),
+}
+impl ParsedArg {
+    pub fn is_none(&self) -> bool {
+        matches!(self, ParsedArg::None)
+    }
+    pub fn as_value(self) -> String {
+        let Self::Value(v) = self else {
+            panic!("ERROR: Cast `ParsedArg` as value failed");
+        };
+
+        v
+    }
+    pub fn as_variadic(self) -> Vec<String> {
+        let Self::Variadic(v) = self else {
+            panic!("ERROR: Cast `ParsedArg` as variadic failed");
+        };
+
+        v
+    }
+}
+
+pub enum ParsedOpt {
+    None,
+    Flag(bool),
+    Value(String),
+    Args(ParsedArgs),
+}
+
+impl ParsedOpt {
+    pub fn is_none(&self) -> bool {
+        matches!(self, ParsedOpt::None)
+    }
+    pub fn as_flag(self) -> bool {
+        let Self::Flag(v) = self else {
+            panic!("ERROR: Cast `ParsedOpt` as flag failed");
+        };
+
+        v
+    }
+    pub fn as_value(self) -> String {
+        let Self::Value(v) = self else {
+            panic!("ERROR: Cast `ParsedOpt` as value failed");
+        };
+
+        v
+    }
+    pub fn as_args(self) -> HashMap<String,ParsedArg> {
+        let Self::Args(v) = self else {
+            panic!("ERROR: Cast `ParsedOpt` as args failed");
+        };
+
+        v
+    }
+}
+
+pub type ParsedArgs = HashMap<String, ParsedArg>;
+pub type ParsedOpts = HashMap<String, ParsedOpt>;
 
 impl Cli {
     pub fn parse(&mut self, env_args: Vec<String>) -> (ParsedArgs, ParsedOpts) {
@@ -97,7 +156,7 @@ impl Cli {
 
                 // Option has no arguments = flag-only option
                 if opt_def.args.is_empty() {
-                    parsed_opts.insert(opt_def.name.clone(), Box::new(true));
+                    parsed_opts.insert(opt_def.name.clone(), ParsedOpt::Flag(true));
                     continue;
                 }
 
@@ -117,7 +176,10 @@ impl Cli {
 
                     // If the option only has one argument, insert the value into the option directly
                     if parsed_opt_args.len() == 1 {
-                        parsed_opts.insert(opt_def.name.clone(), parsed_value);
+                        parsed_opts.insert(
+                            opt_def.name.clone(),
+                            ParsedOpt::Value(parsed_value.as_value()),
+                        );
                     } else {
                         parsed_opt_args.insert(arg_def.name.clone(), parsed_value);
                     }
@@ -128,7 +190,7 @@ impl Cli {
                 Self::check_for_missing_required_args(&opt_args, idx, Some(opt_idx))?;
 
                 if opt_def.args.len() > 1 {
-                    parsed_opts.insert(opt_def.name.clone(), Box::new(parsed_opt_args));
+                    parsed_opts.insert(opt_def.name.clone(), ParsedOpt::Args(parsed_opt_args));
                 }
             } else {
                 // Check if we've gone past the number of positional arguments
@@ -159,16 +221,16 @@ impl Cli {
         arg_def: &CliArgument,
         current_token: String,
         tokens: &mut Peekable<std::vec::IntoIter<String>>,
-    ) -> Result<Box<dyn Any>, ParseError> {
+    ) -> Result<ParsedArg, ParseError> {
         if arg_def.variadic {
             let mut values = vec![current_token];
             while tokens.peek().is_some() && !Self::is_option_token(tokens.peek().unwrap()) {
                 values.push(tokens.next().unwrap());
             }
 
-            Ok(Box::new(values))
+            Ok(ParsedArg::Variadic(values))
         } else {
-            Ok(Box::new(current_token))
+            Ok(ParsedArg::Value(current_token))
         }
     }
 
@@ -181,64 +243,23 @@ impl Cli {
     ) -> Result<(), ParseError> {
         let required_opts = template_opts.iter().filter(|opt| !opt.optional);
 
-        let mut missing_required_opts = Vec::new();
-
-        for opt in required_opts {
-            let flags = format!(
-                "({})",
-                opt.flags
-                    .values()
-                    .iter()
-                    .filter_map(|f| f.as_ref().map(|s| s.to_string()))
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            );
-
-            match opt.args.len() {
-                0 => {
-                    if parsed_opts
-                        .get(&opt.name.clone())
-                        .unwrap()
-                        .downcast_ref::<bool>()
-                        .is_none()
-                    {
-                        missing_required_opts.push(flags);
-                    }
-                }
-                1 => {
-                    let arg_def = &opt.args[0];
-                    if arg_def.variadic {
-                        if parsed_opts
-                            .get(&opt.name.clone())
-                            .unwrap()
-                            .downcast_ref::<Vec<String>>()
-                            .is_none()
-                        {
-                            missing_required_opts.push(flags);
-                        }
-                    } else {
-                        if parsed_opts
-                            .get(&opt.name.clone())
-                            .unwrap()
-                            .downcast_ref::<String>()
-                            .is_none()
-                        {
-                            missing_required_opts.push(flags);
-                        }
-                    }
-                }
-                _ => {
-                    if parsed_opts
-                        .get(&opt.name.clone())
-                        .unwrap()
-                        .downcast_ref::<HashMap<String, Box<dyn Any>>>()
-                        .is_none()
-                    {
-                        missing_required_opts.push(flags);
-                    }
-                }
-            };
-        }
+        let missing_required_opts: Vec<String> = required_opts.filter_map(|opt| {
+            let is_missing = parsed_opts.get(&opt.name).unwrap().is_none();
+            
+            if is_missing {
+                Some(format!(
+                    "({})",
+                    opt.flags
+                        .values()
+                        .iter()
+                        .filter_map(|f| f.as_ref().map(|s| s.to_string()))
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                ))
+            } else {
+                None
+            }
+        }).collect();
 
         if !missing_required_opts.is_empty() {
             return Err(ParseError::MissingRequiredOptions(missing_required_opts));
@@ -251,12 +272,16 @@ impl Cli {
         positional_idx: usize,
         opt_idx: Option<usize>,
     ) -> Result<(), ParseError> {
-        if positional_idx < template_args.iter().filter(|arg| !arg.optional).count() {
-            let missing_args = template_args[positional_idx..]
+        // Required args can only preceed other required args.
+        // This is essentially the head where required args end.
+        let required_args_count = template_args.iter().filter(|arg| !arg.optional).count();
+
+        if positional_idx < required_args_count {
+            let missing_args = template_args[positional_idx..required_args_count - 1]
                 .iter()
-                .filter(|arg| !arg.optional)
                 .map(|arg| arg.reconstruct_name())
                 .collect::<Vec<String>>();
+
             if let Some(opt_idx) = opt_idx {
                 return Err(ParseError::MissingRequiredArgumentsForOption(
                     opt_idx,
@@ -266,6 +291,7 @@ impl Cli {
                 return Err(ParseError::MissingRequiredArguments(missing_args));
             }
         }
+
         Ok(())
     }
     // ------------------------------------------------------------
@@ -274,46 +300,21 @@ impl Cli {
     fn is_option_token(token: &str) -> bool {
         token.starts_with('-') && token != "-"
     }
+
     // ------------------------------------------------------------
     // Initialization Utils
     // ------------------------------------------------------------
     fn initialize_parsed_args(template_args: &Vec<CliArgument>) -> ParsedArgs {
         let mut parsed_args: ParsedArgs = HashMap::new();
         for arg in template_args {
-            match arg.variadic {
-                true => parsed_args.insert(arg.name.clone(), Box::new(None::<Vec<String>>)),
-                false => parsed_args.insert(arg.name.clone(), Box::new(None::<String>)),
-            };
+            parsed_args.insert(arg.name.clone(), ParsedArg::None);
         }
         parsed_args
     }
     fn initialize_parsed_opts(template_opts: &Vec<CliOption>) -> ParsedOpts {
         let mut parsed_opts: ParsedOpts = HashMap::new();
         for opt in template_opts {
-            match opt.args.len() {
-                0 => {
-                    parsed_opts.insert(opt.name.clone(), Box::new(None::<bool>));
-                }
-                1 => {
-                    let arg_def = &opt.args[0];
-                    if arg_def.variadic {
-                        parsed_opts.insert(opt.name.clone(), Box::new(None::<Vec<String>>));
-                    } else {
-                        parsed_opts.insert(opt.name.clone(), Box::new(None::<String>));
-                    }
-                }
-                _ => {
-                    if opt.optional {
-                        let parsed_opt_args = Self::initialize_parsed_args(&opt.args);
-                        parsed_opts.insert(opt.name.clone(), Box::new(parsed_opt_args));
-                    } else {
-                        parsed_opts.insert(
-                            opt.name.clone(),
-                            Box::new(None::<HashMap<String, Box<dyn Any>>>),
-                        );
-                    }
-                }
-            }
+            parsed_opts.insert(opt.name.clone(), ParsedOpt::None);
         }
         parsed_opts
     }

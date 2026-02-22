@@ -82,15 +82,26 @@ pub fn generate_opts_struct(opts: &Vec<CliOption>, pascal_prefix: &str) -> Token
                     })
                     .collect();
 
-                let nested_struct = quote! {
-                    #[derive(Debug)]
-                    pub struct #nested_struct_name {
-                        #(#nested_fields),*
-                    }
-                };
-
-                nested_structs.push(nested_struct);
-
+                if !opt.required {
+                    nested_structs.push(
+                        quote! {
+                            #[derive(Debug, Default)]
+                            pub struct #nested_struct_name {
+                                #(#nested_fields),*
+                            }
+                        }
+                    )
+                } else {
+                    nested_structs.push(
+                        quote! {
+                            #[derive(Debug)]
+                            pub struct #nested_struct_name {
+                                #(#nested_fields),*
+                            }
+                        }
+                    )
+                }
+   
                 fields.push(quote! { pub #field_name: #nested_struct_name });
             }
         }

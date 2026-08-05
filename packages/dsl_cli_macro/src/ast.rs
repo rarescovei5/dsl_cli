@@ -128,7 +128,7 @@ impl Parse for Command {
             description,
             arguments,
             options,
-            span: cmd_keyword.span()
+            span: cmd_keyword.span(),
         })
     }
 }
@@ -137,7 +137,7 @@ fn parse_argument(
     input: ParseStream,
     is_positional: bool,
     is_ctx_required: bool,
-    keyword_span: Span
+    keyword_span: Span,
 ) -> syn::Result<Argument> {
     // arg <name> ["description"] [: type] [= <default>],
     let name: Ident = input.parse()?;
@@ -195,7 +195,7 @@ fn parse_argument(
         description,
         ty,
         default,
-        span: keyword_span
+        span: keyword_span,
     })
 }
 
@@ -240,6 +240,6 @@ fn parse_option(input: ParseStream, required: bool, keyword_span: Span) -> syn::
         description,
         arguments,
         required,
-        span: keyword_span
+        span: keyword_span,
     })
 }

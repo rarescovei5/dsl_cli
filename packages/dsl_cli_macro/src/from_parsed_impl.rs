@@ -3,7 +3,8 @@ use quote::{format_ident, quote};
 use syn::Ident;
 
 use crate::{
-    Argument, Command, generate_args_struct_name, get_effective_type, is_optional_type, is_variadic_type, parse_flags, to_pascal_case
+    Argument, Command, generate_args_struct_name, get_effective_type, is_optional_type,
+    is_variadic_type, parse_flags, to_pascal_case,
 };
 
 pub fn generate_from_parsed_impl_for_args(cmd: &Command) -> TokenStream2 {
@@ -55,42 +56,42 @@ pub fn generate_from_parsed_impl_for_opts(cmd: &Command) -> TokenStream2 {
         let is_optional = !opt.required;
 
         match (arg_count, is_optional) {
-            (0,false) => {
-                field_extractions.push(
-                    quote! {
-                        let #field_name: bool = {
-                            let val = __parsed.remove(#opt_name).unwrap();
+            (0, false) => {
+                field_extractions.push(quote! {
+                    let #field_name: bool = {
+                        let val = __parsed.remove(#opt_name).unwrap();
+                        val.as_flag()
+                    };
+                });
+            }
+            (0, true) => {
+                field_extractions.push(quote! {
+                    let #field_name: bool = {
+                        let val = __parsed.remove(#opt_name).unwrap();
+                        if !val.is_none() {
                             val.as_flag()
-                        };
-                    }
-                );
+                        } else {
+                            false
+                        }
+                    };
+                });
             }
-            (0,true) => {
-                field_extractions.push(
-                    quote! {
-                        let #field_name: bool = {
-                            let val = __parsed.remove(#opt_name).unwrap();
-                            if !val.is_none() {
-                                val.as_flag()
-                            } else {
-                                false
-                            }
-                        };
-                    }
-                );
-            }
-            (1,is_scope_optional) => {
+            (1, is_scope_optional) => {
                 let arg = &opt.arguments[0];
                 let field_name = &Ident::new(&opt_name, Span::call_site());
                 let field_name_str = opt_name;
-                field_extractions.push(
-                    generate_arg_extraction(field_name, &field_name_str, arg, is_scope_optional)
-                );
+                field_extractions.push(generate_arg_extraction(
+                    field_name,
+                    &field_name_str,
+                    arg,
+                    is_scope_optional,
+                ));
             }
             (_, is_scope_optional) => {
                 // Multiple arguments - use nested struct
                 let nested_prefix = format!("{}{}", cmd_pascal, to_pascal_case(&opt_name));
-                let nested_struct_name = format_ident!("{}", generate_args_struct_name(&nested_prefix));
+                let nested_struct_name =
+                    format_ident!("{}", generate_args_struct_name(&nested_prefix));
 
                 // Generate FromParsed for nested struct
                 let nested_field_extractions: Vec<TokenStream2> = opt
@@ -99,8 +100,13 @@ pub fn generate_from_parsed_impl_for_opts(cmd: &Command) -> TokenStream2 {
                     .map(|arg| {
                         let arg_field_name = &arg.name;
                         let arg_field_name_str = arg_field_name.to_string();
-                        
-                        generate_arg_extraction(arg_field_name, &arg_field_name_str, arg, is_scope_optional)
+
+                        generate_arg_extraction(
+                            arg_field_name,
+                            &arg_field_name_str,
+                            arg,
+                            is_scope_optional,
+                        )
                     })
                     .collect();
 
@@ -142,28 +148,26 @@ pub fn generate_from_parsed_impl_for_opts(cmd: &Command) -> TokenStream2 {
     }
 }
 
-
 fn generate_arg_extraction(
     field_name: &syn::Ident,
     field_name_str: &str,
-    arg: &Argument, 
-    scope_optional: bool
+    arg: &Argument,
+    scope_optional: bool,
 ) -> TokenStream2 {
     let is_optional = scope_optional || is_optional_type(&arg.ty);
     let is_variadic = is_variadic_type(&arg.ty);
     let has_default = arg.default.is_some();
 
     let ty = get_effective_type(arg);
-    let field_type = if scope_optional && !has_default  {
+    let field_type = if scope_optional && !has_default {
         syn::parse_quote!(Option<#ty>)
     } else {
         ty
     };
-    
 
-    match (is_optional,is_variadic, has_default) {
+    match (is_optional, is_variadic, has_default) {
         // T
-        (false,false,false) =>{ 
+        (false, false, false) => {
             return quote! {
                 let #field_name: #field_type = {
                     let val = __parsed.remove(#field_name_str).unwrap();
@@ -172,7 +176,7 @@ fn generate_arg_extraction(
             };
         }
         // Option<T>
-        (true,false,false) => {
+        (true, false, false) => {
             return quote! {
                 let #field_name: #field_type = {
                     let val = __parsed.remove(#field_name_str).unwrap();
@@ -185,7 +189,7 @@ fn generate_arg_extraction(
             };
         }
         // Vec<T>
-        (false,true,false) => {
+        (false, true, false) => {
             return quote! {
                 let #field_name: #field_type = {
                     let val = __parsed.remove(#field_name_str).unwrap();
@@ -195,7 +199,7 @@ fn generate_arg_extraction(
             };
         }
         // Option<Vec<T>>
-        (true,true,false) => {
+        (true, true, false) => {
             return quote! {
                 let #field_name: #field_type = {
                     let val = __parsed.remove(#field_name_str).unwrap();
@@ -209,7 +213,7 @@ fn generate_arg_extraction(
             };
         }
         // Option<Vec<T>> with default
-        (true,true,true) => {
+        (true, true, true) => {
             let default_val = arg.default.as_ref().unwrap();
             return quote! {
                 let #field_name: #field_type = {
@@ -224,7 +228,7 @@ fn generate_arg_extraction(
             };
         }
         // Option<T> with default
-        (true,false,true) => {
+        (true, false, true) => {
             let default_val = arg.default.as_ref().unwrap();
             return quote! {
                 let #field_name: #field_type = {
@@ -237,6 +241,6 @@ fn generate_arg_extraction(
                 };
             };
         }
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 }
